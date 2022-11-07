@@ -28,29 +28,11 @@ namespace Alterblade
 			Utils.WriteEmbeddedColorLine("███ BATTLE MODE ████████████");
 			Dialogue battleModeSelection = new(
 				"Battle Mode: ",
-				new Choice("PvP Mode", delegate() { HeroSelection(2); } ),
-				new Choice("2v2 Team Battle", delegate () { HeroSelection(4); } ),
+				new Choice("PvP Mode", delegate() { HeroSelection(1); } ),
+				new Choice("2v2 Team Battle", delegate () { HeroSelection(2); } ),
 				new Choice("[red]Return[/red]", Start)
 			);
 			battleModeSelection.Choose();
-		}
-
-		static void DisplayHeroList(int from, int count)
-		{
-			StringBuilder output = new StringBuilder();
-			output.Append("███ HERO SELECTION █████████\n\n");
-			int index = 0;
-			for (int i = 0; i < GameConstants.HEROES.Count; i++)
-			{
-				if (i >= from && i < from + count)
-				{
-					index++;
-					Hero hero = GameConstants.HEROES[i];
-					output.AppendFormat("  {0} {1}\n", index, hero.StatisticsBanner);
-				}
-			}
-			output.Append("  0 [red]Next Page[/red]\n");
-			Utils.WriteEmbeddedColorLine(output.ToString());
 		}
 
 		public Hero HeroSelector(string query)
@@ -59,7 +41,21 @@ namespace Alterblade
 			int from = 0;
 			while (true)
 			{
-				DisplayHeroList(from, count);
+				StringBuilder output = new StringBuilder();
+				output.Append("███ HERO SELECTION █████████\n\n");
+				int index = 0;
+				for (int i = 0; i < GameConstants.HEROES.Count; i++)
+				{
+					if (i >= from && i < from + count)
+					{
+						index++;
+						Hero hero = GameConstants.HEROES[i];
+						output.AppendFormat("  {0} {1}\n", index, hero.StatisticsBanner);
+					}
+				}
+				output.Append("  0 [red]Next Page[/red]\n");
+				Utils.WriteEmbeddedColorLine(output.ToString());
+
 				int input = Utils.GetInteger(0, 3, query);
 				Utils.ClearScreen();
 				if (input == 0)
@@ -81,7 +77,7 @@ namespace Alterblade
 			List<Hero> team1 = new List<Hero>();
 			List<Hero> team2 = new List<Hero>();
 
-			for (int i = 0; i < heroCountPerTeam; i++)
+			for (int i = 0; i < heroCountPerTeam * 2; i++)
 			{
 				if (i % 2 == 0)
 				{

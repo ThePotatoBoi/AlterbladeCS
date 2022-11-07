@@ -139,7 +139,7 @@ namespace Alterblade.GameObjects
 			{
 				for (int i = 0; i < hero.Team.Count; i++)
 				{
-					target = hero.Team[i];
+					hero = hero.Team[i];
 					DoEffects(hero, target, battle);
 				}
 			}
@@ -312,7 +312,7 @@ namespace Alterblade.GameObjects
 					}
 					case SkillAction.CRITBOOST:
 					{
-						Status status = new Status("Crit Boost", hero, hero, this, StatusType.P_CRITBOOST, 5, UpdateType.POST);
+						Status status = new Status("Crit Boost", hero, hero, this, StatusType.P_CRITBOOST, 4, UpdateType.POST);
 						if (hero.AddStatus(status))
 						{
 							hero.CurrentStats[Stats.CRIT_CHANCE] += 90;

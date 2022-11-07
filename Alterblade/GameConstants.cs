@@ -75,10 +75,10 @@ namespace Alterblade
 				"Medea",
 				"Shadow Elf",
 				new Dictionary<Stats, int> {
-					{ Stats.HP, 85 * 6 },
+					{ Stats.HP, 84 * 6 },
 					{ Stats.ATTACK, 110 },
 					{ Stats.DEFENSE, 70 },
-					{ Stats.SPEED, 95 },
+					{ Stats.SPEED, 96 },
 					{ Stats.CRIT_CHANCE, 10 }
 				},
 				new List<Skill> {
@@ -102,15 +102,15 @@ namespace Alterblade
 				"Axel",
 				"Paladin",
 				new Dictionary<Stats, int> {
-					{ Stats.HP, 105 * 6 },
+					{ Stats.HP, 98 * 6 },
 					{ Stats.ATTACK, 75 },
-					{ Stats.DEFENSE, 120 },
+					{ Stats.DEFENSE, 112 },
 					{ Stats.SPEED, 55 },
 					{ Stats.CRIT_CHANCE, 6 }
 				},
 				new List<Skill> {
 					new Skill( "Zenith Blade", 75, 15, 0.95F,
-						new List<SkillAction>() { SkillAction.DAMAGE_IGNORE_DEFENSE }, SkillTarget.NONE,
+						new List<SkillAction>() { SkillAction.DAMAGE_IGNORE_DEFENSE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, false ),
 					new Skill( "Shield Bash", 65, 10, 0.9F,
 						new List<SkillAction>() { SkillAction.DAMAGE, SkillAction.ENEMY_STAT_CHANCE }, SkillTarget.TARGET,

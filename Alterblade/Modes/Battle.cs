@@ -176,8 +176,12 @@ namespace Alterblade.Modes
 			{
 				Hero hero = HeroQueue[i];
 				if (!hero.IsAlive)
+				{
 					Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} had fallen in battle!", hero.Name).ToString());
+					HeroQueue.Remove(hero);
+				}
 			}
+
 			if (team1.Count <= 0)
 			{
 				isBattleOver = true;
