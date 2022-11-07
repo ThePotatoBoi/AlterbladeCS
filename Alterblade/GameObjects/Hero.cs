@@ -46,6 +46,21 @@ namespace Alterblade.GameObjects
 		public bool IsSupressed => isSupressed;
 		public static Hero None => none;
 
+		public string StatisticsBanner
+		{
+			get
+			{
+				StringBuilder output = new StringBuilder();
+				output.AppendFormat("{0} the {1}\n", name, title);
+				output.AppendFormat("  {0, -15}{1, -15}\n", "Stats:", "Skills:");
+				output.AppendFormat("  █ HP  {0, 4}     █ {1}\n", currentStats[Stats.HP], skills[0].Name);
+				output.AppendFormat("  █ ATK {0, 4}     █ {1}\n", currentStats[Stats.ATTACK], skills[1].Name);
+				output.AppendFormat("  █ DEF {0, 4}     █ {1}\n", currentStats[Stats.DEFENSE], skills[2].Name);
+				output.AppendFormat("  █ SPE {0, 4}     █ {1}\n", currentStats[Stats.SPEED], skills[3].Name);
+				return output.ToString();
+			}
+		}
+
 		#endregion
 
 		#region Constructor
@@ -74,13 +89,18 @@ namespace Alterblade.GameObjects
 
 		#region Methods
 
+		void CheckAliveCondition()
+		{
+			if (currentStats[Stats.HP] < 1)
+			{
+				isAlive = false;
+				team.Remove(this);
+			}
+		}
+
 		public void TakeDamage(int trueAmount, bool showText, bool isCrit = false)
 		{
-			if (!isAlive) {
-				Utils.Error("Damage to a dead hero detected.");
-				return;
-			}
-
+			if (!isAlive) { return; }
 			currentStats[Stats.HP] = Math.Clamp(currentStats[Stats.HP] - trueAmount, 0, baseStats[Stats.HP]);
 			if (showText)
 			{
@@ -108,11 +128,22 @@ namespace Alterblade.GameObjects
 
 		public void Heal(int amount, bool showText)
 		{
+			if (amount < 1) { return; }
 			currentStats[Stats.HP] = Math.Clamp(currentStats[Stats.HP] + amount, 0, 1000);
-			if (showText) {
-				Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} regained [yellow]{1}[/yellow] HP!", name, amount).ToString());
+			if (showText)
+			{
+				StringBuilder output = new StringBuilder().AppendFormat("{0} regained [yellow]{1}[/yellow] HP!", name, amount);
+				Utils.WriteEmbeddedColorLine(output.ToString());
 			}
 			CheckAliveCondition();
+		}
+
+		public void Heal(float percent, bool isMissingHP, bool showText)
+		{
+			int staple = isMissingHP
+				? baseStats[Stats.HP] - currentStats[Stats.HP]
+				: staple = baseStats[Stats.HP];
+			Heal( Convert.ToInt32(percent * staple), showText );
 		}
 
 		public void DoSkill(Battle battle)
@@ -192,16 +223,6 @@ namespace Alterblade.GameObjects
 			return statuses.Remove(status);
 		}
 
-		void CheckAliveCondition()
-		{
-			if (currentStats[Stats.HP] < 1)
-			{
-				isAlive = false;
-				Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} had fallen in battle!", name).ToString());
-				team.Remove(this);
-			}
-		}
-
 		public void DisplayStats()
 		{
 			StringBuilder output = new StringBuilder();
@@ -226,12 +247,13 @@ namespace Alterblade.GameObjects
 			output.Append("[yellow]STATUS[/yellow]: ");
 			for (int i = 0; i < statuses.Count; i++)
 			{
-				output.AppendFormat("[cyan]{0} ({1})[/cyan]", statuses[i].Name, statuses[i].Duration);
+				string color = statuses[i].IsNegative ? "red" : "green";
+				output.AppendFormat("[{2}]{0} ({1})[/{2}]", statuses[i].Name, statuses[i].Duration, color);
 				if (i != statuses.Count - 1)
 					output.Append(", ");
 			}
-			output.AppendLine();
-			Utils.WriteEmbeddedColor(output.ToString());
+			output.Append('\n');
+			Utils.WriteEmbeddedColorLine(output.ToString());
 		}
 
 		public void DisplaySkills()

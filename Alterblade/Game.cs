@@ -12,8 +12,9 @@ namespace Alterblade
 		public void Start()
 		{
 			Utils.ClearScreen();
-			Utils.WriteEmbeddedColorLine(":: [red]Alterblade[/red]: [yellow]Version 0.2 (BETA)[/yellow] ::");
-			Dialogue startSelection = new(
+			Utils.WriteEmbeddedColorLine("██████████████████████████ BETA 0.2 ███████\r\n\r\n  ███ █   ███ ███ ██▄ ██▄ █   ███ ██▄ ███\r\n  █▄█ █    █  █▄  █▄  █▄█ █   █▄█ █ █ █▄ \r\n  █ █ █▄█  █  █▄▄ █ █ █▄█ █▄█ █ █ ███ █▄▄  \r\n\r\n█████████████ by Group 1 BSCS C-103 ███████\r\n\n");
+			Utils.WriteEmbeddedColorLine("███ MAIN MENU ██████████████");
+			Dialogue startSelection = new Dialogue(
 				new Choice("Battle Mode", DoBattleMode),
 				new Choice("[red]Quit[/red]", delegate () { })
 			);
@@ -22,7 +23,7 @@ namespace Alterblade
 
 		public void DoBattleMode()
 		{
-			Console.WriteLine("Choose a Battle Mode!");
+			Utils.WriteEmbeddedColorLine("███ BATTLE MODE ████████████");
 			Dialogue battleModeSelection = new(
 				new Choice("PvP Mode", PVPMode),
 				new Choice("2v2 Team Battle", TeamMode),
@@ -31,33 +32,18 @@ namespace Alterblade
 			battleModeSelection.Choose();
 		}
 
-		public void DisplayCharacterList()
+		public Hero SelectHero()
 		{
 			Hero hero;
 			StringBuilder output = new StringBuilder();
-			output.Append("- - - - - - - - - -\nChoose your character!\n- - - - - - - - - -\n");
+			output.Append("███ HERO SELECTION █████████\n\n");
 			for (int i = 0; i < GameConstants.HEROES.Count; i++)
 			{
 				hero = GameConstants.HEROES[i];
-				output.AppendFormat("\n[{0}]: {1} the {2}\n", i + 1, hero.Name, hero.Title);
-				output.AppendFormat("[yellow]STATS[/yellow]  : [yellow]HP[/yellow]: {0, -3} | [yellow]ATK[/yellow]: {1, -3} | [yellow]DEF[/yellow]: {2, -3} | [yellow]SPE[/yellow]: {3, -3} | [yellow]CRI[/yellow]: {4}%\n",
-					hero.BaseStats[Stats.HP],
-					hero.BaseStats[Stats.ATTACK],
-					hero.BaseStats[Stats.DEFENSE],
-					hero.BaseStats[Stats.SPEED],
-					hero.BaseStats[Stats.CRIT_CHANCE]
-				);
-				output.Append("[yellow]SKILLS[/yellow] :");
-				for (int j = 0; j < hero.Skills.Count; j++)
-				{
-					string color = "cyan";
-					if (j != 0) output.Append(',');
-					if (hero.Skills[j].IsUltimate) color = "red";
-					output.AppendFormat(" [{1}]{0}[/{1}]", hero.Skills[j].Name, color);
-				}
+				output.AppendFormat("  {0} {1}\n", i + 1, hero.StatisticsBanner);
 			}
+			output.Append("  0 [red]Next Page[/red]\n");
 			Utils.WriteEmbeddedColorLine(output.ToString());
-			Console.WriteLine();
 		}
 
 		public void PVPMode()

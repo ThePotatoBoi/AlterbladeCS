@@ -96,6 +96,33 @@ namespace Alterblade
 						new Dictionary<Stats, int>() { }, true )
 				},
 				null
+			),
+
+			new Hero(
+				"Axel",
+				"Paladin",
+				new Dictionary<Stats, int> {
+					{ Stats.HP, 105 * 6 },
+					{ Stats.ATTACK, 75 },
+					{ Stats.DEFENSE, 120 },
+					{ Stats.SPEED, 55 },
+					{ Stats.CRIT_CHANCE, 6 }
+				},
+				new List<Skill> {
+					new Skill( "Zenith Blade", 75, 15, 0.95F,
+						new List<SkillAction>() { SkillAction.DAMAGE_IGNORE_DEFENSE }, SkillTarget.NONE,
+						new Dictionary<Stats, int>() { }, false ),
+					new Skill( "Shield Bash", 65, 10, 0.9F,
+						new List<SkillAction>() { SkillAction.DAMAGE, SkillAction.ENEMY_STAT_CHANCE }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { { Stats.DEFENSE, -1 } }, false ),
+					new Skill( "Taunt", 0, 5, 0,
+						new List<SkillAction>() { SkillAction.TAUNT }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { }, false ),
+					new Skill( "Holy Blessing", 25, 1, 0,
+						new List<SkillAction>() { SkillAction.HEAL_PERCENT, SkillAction.SELF_STAT }, SkillTarget.ALLYTEAM,
+						new Dictionary<Stats, int>() { { Stats.DEFENSE, 1 } }, true )
+				},
+				null
 			)
 
 		};

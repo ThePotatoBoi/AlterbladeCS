@@ -132,11 +132,11 @@ namespace Alterblade
 		public static void ClearScreen()
 		{
 #if DEBUG
-			Utils.WriteEmbeddedColorLine("\n[red]~ <Clear Screen> [/red]");
+				Utils.WriteEmbeddedColorLine("\n[red]~ <Clear Screen> [/red]\n");
 #else
 				Console.Clear();
+				Console.WriteLine();
 #endif
-			Console.WriteLine();
 		}
 
 		public static void Delay(int ms)

@@ -7,7 +7,6 @@ using System.Text;
 
 namespace Alterblade.GameObjects
 {
-
 	enum SkillTarget
 	{
 		TARGET,
@@ -22,14 +21,17 @@ namespace Alterblade.GameObjects
 		DAMAGE,
 		DAMAGE_HEAL,
 		DAMAGE_RECOIL,
+		DAMAGE_IGNORE_DEFENSE,
 		SELF_STAT,
 		ENEMY_STAT,
 		SELF_STAT_CHANCE,
 		ENEMY_STAT_CHANCE,
-
+		HEAL_PERCENT,
+		HEAL_MISSING,
 		DOUBLEHITS,
 		TRIPLEHITS,
 		MULTIHITS,
+		TAUNT,
 
 		// Specials
 		CRITBOOST,
@@ -260,6 +262,14 @@ namespace Alterblade.GameObjects
 						hero.TakeDamage(recoil, false);
 						break;
 					}
+					case SkillAction.DAMAGE_IGNORE_DEFENSE:
+					{
+						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE]);
+						int defense = Math.Clamp(hero.CurrentStats[Stats.ATTACK], 0, hero.BaseStats[Stats.DEFENSE]);
+						int damage = Hero.CalculateDamage(baseDamage, willCrit, hero.CurrentStats[Stats.ATTACK], defense, target.BaseStats[Stats.DEFENSE]);
+						target.TakeDamage(damage, true);
+						break;
+					}
 					case SkillAction.SELF_STAT:
 					{
 						foreach (KeyValuePair<Stats, int> stat in StatEffects)
@@ -309,6 +319,16 @@ namespace Alterblade.GameObjects
 						RepeatedDamage(hero, target, Utils.Random.Next(2, 5));
 						break;
 					}
+					case SkillAction.HEAL_PERCENT:
+					{
+						hero.Heal(0.01F * baseDamage, false, true);
+						break;
+					}
+					case SkillAction.HEAL_MISSING:
+					{
+						hero.Heal(0.01F * baseDamage, true, true);
+						break;
+					}
 					case SkillAction.THORNS:
 					{
 						int duration = Utils.Random.Next(2, 5);
@@ -347,6 +367,11 @@ namespace Alterblade.GameObjects
 							hero.CurrentStats[Stats.CRIT_CHANCE] += 10;
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0}'s [cyan]Crit Boost[/cyan] is heightened!", hero.Name).ToString());
 						}
+						break;
+					}
+					case SkillAction.TAUNT:
+					{
+
 						break;
 					}
 				}

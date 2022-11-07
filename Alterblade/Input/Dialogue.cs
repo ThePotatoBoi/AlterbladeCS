@@ -22,9 +22,12 @@ namespace Alterblade.Input
 
         public void Choose()
 		{
+			StringBuilder output = new StringBuilder();
+			output.Append('\n');
 			for ( int i = 0; i < choices.Count; i++ )
-				Utils.WriteEmbeddedColorLine("    [" + (i + 1) + "]: " + choices[i].Text);
-			int index = Utils.GetInteger(1, choices.Count, ": ") - 1;
+				output.AppendFormat("  {0} {1}\n", i + 1, choices[i].Text);
+			Utils.WriteEmbeddedColorLine(output.ToString());
+			int index = Utils.GetInteger(1, choices.Count, "█ Input: ") - 1;
 			Utils.ClearScreen();
 			choices[index].Callback();
 		}

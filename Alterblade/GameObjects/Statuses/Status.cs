@@ -101,24 +101,23 @@ namespace Alterblade.GameObjects.Statuses
 			{
 				case StatusType.N_DAMAGE_PER_TURN:
 				{
-					output.AppendFormat("{0} is hurt by [cyan]THORNS[/cyan]!", hero.Name);
+					output.AppendFormat("{0} is hurt by [cyan]{1}[/cyan]!", hero.Name, name);
 					Utils.WriteEmbeddedColorLine(output.ToString());
 					hero.TakeDamage(0.08F, false);
 					break;
 				}
 				case StatusType.N_DEATH_NOTICE:
 				{
-
 					if (Hero.CurrentStats[Stats.HP] < Convert.ToInt32(0.25F * hero.BaseStats[Stats.HP]))
 					{
-						output.AppendFormat("{0} is caught by the [cyan]Death Notice[/cyan]!", hero.Name);
+						output.AppendFormat("{0} is caught by the [cyan]{1}[/cyan]!", hero.Name, name);
 						Utils.WriteEmbeddedColorLine(output.ToString());
 						hero.RemoveStatus(this);
 						hero.TakeDamage(1F, false);
 					}
 					else
 					{
-						output.AppendFormat("{0}'s [cyan]Death Notice[/cyan] is pending...", hero.Name, duration);
+						output.AppendFormat("{0}'s [cyan]{1}[/cyan] is pending...", hero.Name, name);
 						Utils.WriteEmbeddedColorLine(output.ToString());
 					}
 					break;

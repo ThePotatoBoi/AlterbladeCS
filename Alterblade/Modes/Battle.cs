@@ -3,6 +3,8 @@ using Alterblade.GameObjects.Statuses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Xml.Linq;
 
 namespace Alterblade.Modes
 {
@@ -43,12 +45,24 @@ namespace Alterblade.Modes
 		void DisplayHeader()
 		{
 			Utils.ClearScreen();
-			Utils.WriteLine("- - - - - - - - - -");
-			string output = isTeamBattle
-				? "[red]" + team1[0].Name + "[/red] and [red]" + team1[1].Name + "[/red] vs [blue]" + team2[0].Name + "[/blue] and [blue]" + team2[1].Name + "[/blue]!"
-				: "[red]" + team1[0].Name + "[/red] vs [blue]" + team2[0].Name + "[/blue]!";
-			Utils.WriteEmbeddedColorLine(output);
-			Utils.WriteLine("- - - - - - - - - -");
+			StringBuilder output = new StringBuilder();
+			output.AppendLine("- - - - - - - - - -");
+			if ( isTeamBattle )
+			{
+				output.AppendFormat(
+					"[red]{0}[/red] and [red]{1}[/red] vs [blue]{2}[/blue] and [blue]{3}[/blue]!\n",
+					team1[0].Name, team1[1].Name, team2[0].Name, team2[1].Name
+				);
+			}
+			else
+			{
+				output.AppendFormat(
+					"[red]{0}[/red] vs [blue]{1}[/blue]!\n",
+					team1[0].Name, team2[0].Name
+				);
+			}
+			output.Append("- - - - - - - - - -");
+			Utils.WriteEmbeddedColorLine(output.ToString());
 			Utils.Delay(2500);
 			Utils.ClearScreen();
 		}
@@ -81,7 +95,6 @@ namespace Alterblade.Modes
 				// Pre-turn Updates
 				if (i == 0)
 				{
-					Console.WriteLine();
 					HeroQueue[i].UpdateStatuses(UpdateType.PRE);
 				}
 
@@ -98,14 +111,14 @@ namespace Alterblade.Modes
 					// opposingPlayer = "[red]Player 1[/red]";
 				}
 
-				Utils.WriteEmbeddedColorLine("\n- [ [red]Player 1[/red] ] - - - - - - - - -");
+				Utils.WriteEmbeddedColorLine("- [ [red]Player 1[/red] ] - - - - - - - - -");
 				for (int j = 0; j < team1.Count; j++)
 				{
 					Console.Write("[" + (j + 1) + "] " + team1[j].Name);
 					team1[j].DisplayStats();
 				}
 
-				Utils.WriteEmbeddedColorLine("\n- [ [blue]Player 2[/blue] ] - - - - - - - - -");
+				Utils.WriteEmbeddedColorLine("- [ [blue]Player 2[/blue] ] - - - - - - - - -");
 				for (int j = 0; j < team2.Count; j++)
 				{
 					Console.Write("[" + (j + 1) + "] " + team2[j].Name);
@@ -128,7 +141,6 @@ namespace Alterblade.Modes
 				// Post-turn Updates
 				if (i == HeroQueue.Count - 1)
 				{
-					Console.WriteLine();
 					HeroQueue[i].UpdateStatuses(UpdateType.POST);
 				}
 
@@ -141,6 +153,7 @@ namespace Alterblade.Modes
 					Utils.Delay(1000);
 					Utils.WriteEmbeddedColor("Press [yellow]<Enter>[/yellow] to continue...");
 					while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
+					Console.WriteLine();
 				}
 
 				Utils.ClearScreen();
@@ -159,6 +172,12 @@ namespace Alterblade.Modes
 
 		void UpdateTeamStates()
 		{
+			for (int i = 0; i < HeroQueue.Count; i++)
+			{
+				Hero hero = HeroQueue[i];
+				if (!hero.IsAlive)
+					Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} had fallen in battle!", hero.Name).ToString());
+			}
 			if (team1.Count <= 0)
 			{
 				isBattleOver = true;
