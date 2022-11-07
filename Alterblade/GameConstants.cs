@@ -82,7 +82,7 @@ namespace Alterblade
 					{ Stats.CRIT_CHANCE, 10 }
 				},
 				new List<Skill> {
-					new Skill( "Crippling Shot", 65, 15, 0.9F,
+					new Skill( "Shadow Shot", 70, 15, 0.9F,
 						new List<SkillAction>() { SkillAction.DAMAGE, SkillAction.ENEMY_STAT_CHANCE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { { Stats.ATTACK, -1 } }, false ),
 					new Skill( "Bowfaire", 0, 5, 0,

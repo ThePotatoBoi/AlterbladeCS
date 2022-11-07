@@ -43,50 +43,6 @@ namespace Alterblade.GameObjects
 		POISON_CHANCE,
 	}
 
-	enum SkillType_DEPRECATED
-	{
-
-		// Targeted Skills
-		T_DAMAGE,
-		T_DAMAGEHEAL,
-		T_DAMAGERECOIL,
-		T_DAMAGE_SELFSTAT,
-		T_DAMAGE_ENEMYSTAT,
-		T_DAMAGE_SELFSTAT_CHANCE,
-		T_DAMAGE_ENEMYSTAT_CHANCE,
-		T_DAMAGE_POISON_CHANCE,
-		T_ENEMYSTAT,
-		T_MULTIHITS,
-		T_DOUBLE_HITS,
-
-		// Non-Targeted Skills
-		N_SELFSTAT,
-		N_HEALSELF,
-		N_HEALTEAM,
-		N_CRITBOOST,
-		N_STATRESET,
-
-		// AOEs
-		AOE_DAMAGE,
-		AOE_DAMAGE_RANDOMSTAT,
-		AOE_DAMAGE_SELFSTAT,
-		AOE_DAMAGE_ENEMYSTAT,
-		AOE_DAMAGE_SELFSTAT_CHANCE,
-		AOE_DAMAGE_ENEMYSTAT_CHANCE,
-		AOE_STAT,
-
-		// Specials
-		T_DEATHNOTICE,
-		T_DEATHBLOSSOM,
-		N_ARENAOFVALOR,
-		N_TRICKROOM,
-		N_MIMIC,
-		T_DISABLE,
-		T_TAUNT,
-		T_GRASPINGTHORNS,
-
-	}
-
 	internal class Skill
 	{
 
@@ -184,8 +140,7 @@ namespace Alterblade.GameObjects
 				for (int i = 0; i < hero.Team.Count; i++)
 				{
 					target = hero.Team[i];
-					if (RollAccuracy(true) || isRepeating)
-						DoEffects(hero, target, battle);
+					DoEffects(hero, target, battle);
 				}
 			}
 			else if (skillTarget == SkillTarget.ENEMYTEAM)
@@ -193,17 +148,14 @@ namespace Alterblade.GameObjects
 				for (int i = 0; i < battle.OpposingTeam.Count; i++)
 				{
 					target = battle.OpposingTeam[i];
-					if (RollAccuracy(true) || isRepeating)
+					if (Utils.RollAccuracy(accuracy, 0, true) || isRepeating)
 						DoEffects(hero, target, battle);
 				}
 			}
 			else
 			{
-				do
-				{
-					if (RollAccuracy(true) || isRepeating)
-						DoEffects(hero, target, battle);
-				} while (false);
+				if (Utils.RollAccuracy(accuracy, 0, true) || isRepeating)
+					DoEffects(hero, target, battle);
 			}
 
 			skillPoint--;
@@ -216,13 +168,12 @@ namespace Alterblade.GameObjects
 			int count = 0;
 			for (int j = 0; j < repeat; j++)
 			{
-				if (!RollAccuracy(false)) { continue; }
-				if (!target.IsAlive) { break; }
+				if (!Utils.RollAccuracy(accuracy, 0, true)) { continue; }
 
 				count++;
 				bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE] * 0.01F);
 				Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} hits! {1}", count, willCrit ? "[red]It's a critical hit![/red]" : "").ToString());
-				int damage = Hero.CalculateDamage(baseDamage, hero, target, willCrit);
+				int damage = Utils.CalculateDamage(baseDamage, hero, target, willCrit);
 				sum += damage;
 			}
 			Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("A total of {0} damage!", sum).ToString());
@@ -247,7 +198,7 @@ namespace Alterblade.GameObjects
 					case SkillAction.DAMAGE_HEAL:
 					{
 						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE]);
-						int damage = Hero.CalculateDamage(baseDamage, hero, target, willCrit);
+						int damage = Utils.CalculateDamage(baseDamage, hero, target, willCrit);
 						target.TakeDamage(damage, true);
 						hero.Heal(Convert.ToInt32(damage * 0.5F), true);
 						break;
@@ -255,7 +206,7 @@ namespace Alterblade.GameObjects
 					case SkillAction.DAMAGE_RECOIL:
 					{
 						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE]);
-						int damage = Hero.CalculateDamage(baseDamage, hero, target, willCrit);
+						int damage = Utils.CalculateDamage(baseDamage, hero, target, willCrit);
 						int recoil = Convert.ToInt32(damage * 0.25F);
 						target.TakeDamage(damage, true);
 						Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} is hurt by {1} recoil damage.", hero.Name, recoil).ToString());
@@ -266,7 +217,7 @@ namespace Alterblade.GameObjects
 					{
 						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE]);
 						int defense = Math.Clamp(hero.CurrentStats[Stats.ATTACK], 0, hero.BaseStats[Stats.DEFENSE]);
-						int damage = Hero.CalculateDamage(baseDamage, willCrit, hero.CurrentStats[Stats.ATTACK], defense, target.BaseStats[Stats.DEFENSE]);
+						int damage = Utils.CalculateDamage(baseDamage, willCrit, hero.CurrentStats[Stats.ATTACK], defense, target.BaseStats[Stats.DEFENSE]);
 						target.TakeDamage(damage, true);
 						break;
 					}
@@ -364,7 +315,7 @@ namespace Alterblade.GameObjects
 						Status status = new Status("Crit Boost", hero, hero, this, StatusType.P_CRITBOOST, 5, UpdateType.POST);
 						if (hero.AddStatus(status))
 						{
-							hero.CurrentStats[Stats.CRIT_CHANCE] += 10;
+							hero.CurrentStats[Stats.CRIT_CHANCE] += 90;
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0}'s [cyan]Crit Boost[/cyan] is heightened!", hero.Name).ToString());
 						}
 						break;
@@ -376,15 +327,6 @@ namespace Alterblade.GameObjects
 					}
 				}
 			}
-		}
-
-		bool RollAccuracy(bool showText)
-		{
-			if (accuracy <= 0) return true;
-			bool willHit = Utils.RollBoolean(accuracy);
-			if (!willHit && showText)
-				Utils.WriteEmbeddedColorLine("But it missed...");
-			return willHit;
 		}
 	}
 }

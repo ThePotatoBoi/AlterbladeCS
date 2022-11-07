@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,11 +11,12 @@ namespace Alterblade.Input
     public delegate void Callback();
     internal class Dialogue
 	{
+		readonly string query;
+		readonly List<Choice> choices;
 
-		List<Choice> choices;
-
-        public Dialogue(params Choice[] choices)
+        public Dialogue(string query, params Choice[] choices)
 		{
+			this.query = query;
 			this.choices = new List<Choice>();
             foreach (Choice choice in choices)
 				this.choices.Add(choice);
@@ -27,7 +29,7 @@ namespace Alterblade.Input
 			for ( int i = 0; i < choices.Count; i++ )
 				output.AppendFormat("  {0} {1}\n", i + 1, choices[i].Text);
 			Utils.WriteEmbeddedColorLine(output.ToString());
-			int index = Utils.GetInteger(1, choices.Count, "█ Input: ") - 1;
+			int index = Utils.GetInteger(1, choices.Count, query) - 1;
 			Utils.ClearScreen();
 			choices[index].Callback();
 		}

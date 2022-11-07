@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Alterblade.GameObjects;
+using System;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -15,7 +17,7 @@ namespace Alterblade
 		/// </summary>
 		#region ColorConsole
 
-		private static Lazy<Regex> colorBlockRegEx = new Lazy<Regex>(
+		readonly static Lazy<Regex> colorBlockRegEx = new Lazy<Regex>(
 			delegate () { return new Regex("\\[(?<color>.*?)\\](?<text>[^[]*)\\[/\\k<color>\\]", RegexOptions.IgnoreCase); },
 			isThreadSafe: true
 		);
@@ -152,9 +154,9 @@ namespace Alterblade
 		{
 			while (true)
 			{
-				if (query.Length > 0) { WriteEmbeddedColor(query); }
-				int input;
-				if (int.TryParse(Console.ReadLine(), out input))
+				if (query.Length > 0)
+					WriteEmbeddedColor(new StringBuilder().Append("█ ").Append(query).ToString());
+				if (int.TryParse(Console.ReadLine(), out int input))
 				{
 					if (input >= min && input <= max) return input;
 				}
@@ -165,6 +167,32 @@ namespace Alterblade
 		public static bool RollBoolean(float chance)
 		{
 			return Random.NextDouble() < chance;
+		}
+
+		public static int CalculateDamage(int baseDamage, Hero source, Hero target, bool isCrit)
+		{
+			return CalculateDamage(baseDamage, isCrit, source.CurrentStats[Stats.ATTACK], target.CurrentStats[Stats.DEFENSE], target.BaseStats[Stats.DEFENSE]);
+		}
+
+		public static int CalculateDamage(int baseDamage, bool isCrit, int attackerAttack, int targetDefense, int targetBaseDefense)
+		{
+			if (isCrit)
+				targetDefense = Math.Clamp(targetDefense, 0, targetBaseDefense);
+			float multiplier = isCrit ? 1.5F : 1F;
+			float staple = (30F * baseDamage * attackerAttack / (targetDefense * 40F)) + 15F;
+			float bonusMultiplier = 0.9F + Convert.ToSingle(0.2F * Utils.Random.NextDouble());
+			return Convert.ToInt32(staple * bonusMultiplier * multiplier);
+		}
+
+		public static bool RollAccuracy(float accuracy, float targetEvasiveness, bool showText)
+		{
+			if (accuracy <= 0) return true;
+			bool willHit = Utils.RollBoolean(accuracy - targetEvasiveness);
+			if (!willHit && showText)
+			{
+				Error("The attack missed!");
+			}
+			return willHit;
 		}
 	}
 }

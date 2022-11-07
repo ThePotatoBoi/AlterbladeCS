@@ -52,7 +52,6 @@ namespace Alterblade.GameObjects
 			{
 				StringBuilder output = new StringBuilder();
 				output.AppendFormat("{0} the {1}\n", name, title);
-				output.AppendFormat("  {0, -15}{1, -15}\n", "Stats:", "Skills:");
 				output.AppendFormat("  █ HP  {0, 4}     █ {1}\n", currentStats[Stats.HP], skills[0].Name);
 				output.AppendFormat("  █ ATK {0, 4}     █ {1}\n", currentStats[Stats.ATTACK], skills[1].Name);
 				output.AppendFormat("  █ DEF {0, 4}     █ {1}\n", currentStats[Stats.DEFENSE], skills[2].Name);
@@ -112,7 +111,7 @@ namespace Alterblade.GameObjects
 
 		public void TakeDamage(int baseDamage, int attackerAttack, bool showText, bool isCrit)
 		{
-			int damage = CalculateDamage(baseDamage, isCrit, attackerAttack, currentStats[Stats.DEFENSE], baseStats[Stats.DEFENSE]);
+			int damage = Utils.CalculateDamage(baseDamage, isCrit, attackerAttack, currentStats[Stats.DEFENSE], baseStats[Stats.DEFENSE]);
 			TakeDamage(damage, showText, isCrit);
 		}
 
@@ -142,7 +141,7 @@ namespace Alterblade.GameObjects
 		{
 			int staple = isMissingHP
 				? baseStats[Stats.HP] - currentStats[Stats.HP]
-				: staple = baseStats[Stats.HP];
+				: baseStats[Stats.HP];
 			Heal( Convert.ToInt32(percent * staple), showText );
 		}
 
@@ -270,25 +269,6 @@ namespace Alterblade.GameObjects
 				);
 			}
 			Utils.WriteEmbeddedColorLine(output.ToString());
-		}
-
-		#endregion
-
-		#region Statics
-
-		public static int CalculateDamage(int baseDamage, Hero source, Hero target, bool isCrit)
-		{
-			return CalculateDamage(baseDamage, isCrit, source.CurrentStats[Stats.ATTACK], target.CurrentStats[Stats.DEFENSE], target.BaseStats[Stats.DEFENSE]);
-		}
-
-		public static int CalculateDamage(int baseDamage, bool isCrit, int attackerAttack, int targetDefense, int targetBaseDefense)
-		{
-			if (isCrit)
-				targetDefense = Math.Clamp(targetDefense, 0, targetBaseDefense);
-			float multiplier = isCrit ? 1.5F : 1F;
-			float staple = (30F * baseDamage * attackerAttack / (targetDefense * 40F)) + 15F;
-			float bonusMultiplier = 0.9F + Convert.ToSingle(0.2F * Utils.Random.NextDouble());
-			return Convert.ToInt32(staple * bonusMultiplier * multiplier);
 		}
 
 		#endregion
