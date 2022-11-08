@@ -1,8 +1,5 @@
 ﻿TODO:
 
-1. Medea's [Crit Boost] duration decrease seems off?
--  Does UpdateType.POST causes this?
+* Update Battle Text Design/Layout
 
-2. Update Battle Text Design/Layout
-
-2. Add Volfir
+* Add Volfir

@@ -7,42 +7,6 @@ using System.Text;
 
 namespace Alterblade.GameObjects
 {
-	enum SkillTarget
-	{
-		TARGET,
-		NONE,
-		ENEMYTEAM,
-		ALLYTEAM,
-	}
-
-	enum SkillAction
-	{
-		// General
-		DAMAGE,
-		DAMAGE_HEAL,
-		DAMAGE_RECOIL,
-		DAMAGE_IGNORE_DEFENSE,
-		SELF_STAT,
-		ENEMY_STAT,
-		SELF_STAT_CHANCE,
-		ENEMY_STAT_CHANCE,
-		HEAL_PERCENT,
-		HEAL_MISSING,
-		DOUBLEHITS,
-		TRIPLEHITS,
-		MULTIHITS,
-		TAUNT,
-
-		// Specials
-		CRITBOOST,
-
-		// Status
-		THORNS,
-		DISABLE,
-		DEATH_NOTICE,
-		POISON_CHANCE,
-	}
-
 	internal class Skill
 	{
 
@@ -215,10 +179,10 @@ namespace Alterblade.GameObjects
 					}
 					case SkillAction.DAMAGE_IGNORE_DEFENSE:
 					{
-						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE]);
-						int defense = Math.Clamp(hero.CurrentStats[Stats.ATTACK], 0, hero.BaseStats[Stats.DEFENSE]);
+						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE] * 0.01F);
+						int defense = Math.Clamp(target.CurrentStats[Stats.DEFENSE], 0, target.BaseStats[Stats.DEFENSE]);
 						int damage = Utils.CalculateDamage(baseDamage, willCrit, hero.CurrentStats[Stats.ATTACK], defense, target.BaseStats[Stats.DEFENSE]);
-						target.TakeDamage(damage, true);
+						target.TakeDamage(damage, true, willCrit);
 						break;
 					}
 					case SkillAction.SELF_STAT:
@@ -283,21 +247,21 @@ namespace Alterblade.GameObjects
 					case SkillAction.THORNS:
 					{
 						int duration = Utils.Random.Next(2, 5);
-						Status status = new Status("Thorns", target, hero, this, StatusType.N_DAMAGE_PER_TURN, duration, UpdateType.TURN);
+						HeroStatus status = new HeroStatus("Thorns", duration, target, hero, this, StatusType.N_DAMAGE_PER_TURN, UpdateType.TURN);
 						if (target.AddStatus(status))
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} summoned a cluster of thorns around {1}!", hero.Name, target.Name).ToString());
 						break;
 					}
 					case SkillAction.DEATH_NOTICE:
 					{
-						Status status = new Status("Death Notice", target, hero, this, StatusType.N_DEATH_NOTICE, 3, UpdateType.TURN);
+						HeroStatus status = new HeroStatus("Death Notice", 3, target, hero, this, StatusType.N_DEATH_NOTICE, UpdateType.TURN);
 						if (target.AddStatus(status))
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} became subjected to [cyan]Death Notice[/cyan]!", target.Name).ToString());
 						break;
 					}
 					case SkillAction.DISABLE:
 					{
-						Status status = new Status("Disable", target, hero, this, StatusType.N_DISABLE, 2, UpdateType.TURN);
+						HeroStatus status = new HeroStatus("Disable", 2, target, hero, this, StatusType.N_DISABLE, UpdateType.TURN);
 						if (target.LastSkillUsed == Skill.None)
 						{
 							Utils.Error("But it failed...");
@@ -312,17 +276,22 @@ namespace Alterblade.GameObjects
 					}
 					case SkillAction.CRITBOOST:
 					{
-						Status status = new Status("Crit Boost", hero, hero, this, StatusType.P_CRITBOOST, 4, UpdateType.POST);
+						HeroStatus status = new HeroStatus("Crit Boost", 4, hero, hero, this, StatusType.P_CRITBOOST, UpdateType.TURN);
 						if (hero.AddStatus(status))
 						{
-							hero.CurrentStats[Stats.CRIT_CHANCE] += 90;
+							hero.CurrentStats[Stats.CRIT_CHANCE] += 20;
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0}'s [cyan]Crit Boost[/cyan] is heightened!", hero.Name).ToString());
 						}
 						break;
 					}
 					case SkillAction.TAUNT:
 					{
-
+						HeroStatus status = new HeroStatus("Taunt", 2, target, hero, this, StatusType.N_TAUNT, UpdateType.TURN);
+						if (target.AddStatus(status))
+						{
+							target.PriorityTarget = hero;
+							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} fell on {1}'s [cyan]{2}[/cyan]!", target.Name, hero.Name, status.Name).ToString());
+						}
 						break;
 					}
 				}

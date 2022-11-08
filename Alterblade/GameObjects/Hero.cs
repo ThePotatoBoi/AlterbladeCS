@@ -24,7 +24,7 @@ namespace Alterblade.GameObjects
 		readonly List<Hero> team;
 		readonly Dictionary<Stats, int> baseStats = new Dictionary<Stats, int>();
 		readonly Dictionary<Stats, int> currentStats = new Dictionary<Stats, int>();
-		readonly List<Status> statuses = new List<Status>();
+		readonly List<HeroStatus> statuses = new List<HeroStatus>();
 		bool isAlive = true;
 		bool isSupressed = false;
 
@@ -36,7 +36,7 @@ namespace Alterblade.GameObjects
 		public List<Skill> Skills => skills;
 		public Dictionary<Stats, int> BaseStats => baseStats;
 		public Dictionary<Stats, int> CurrentStats => currentStats;
-		public List<Status> Statuses => statuses;
+		public List<HeroStatus> Statuses => statuses;
 		public List<Hero> Team => team;
 		public Skill LastSkillUsed { get; set; }
 		public Skill LastSkillHit { get; set; }
@@ -128,7 +128,7 @@ namespace Alterblade.GameObjects
 		public void Heal(int amount, bool showText)
 		{
 			if (amount < 1) { return; }
-			currentStats[Stats.HP] = Math.Clamp(currentStats[Stats.HP] + amount, 0, 1000);
+			currentStats[Stats.HP] = Math.Clamp(currentStats[Stats.HP] + amount, 0, baseStats[Stats.HP]);
 			if (showText)
 			{
 				StringBuilder output = new StringBuilder().AppendFormat("{0} regained [yellow]{1}[/yellow] HP!", name, amount);
@@ -203,7 +203,7 @@ namespace Alterblade.GameObjects
 			}
 		}
 
-		public bool AddStatus(Status status)
+		public bool AddStatus(HeroStatus status)
 		{
 			for (int i = 0; i < statuses.Count; i++)
 			{
@@ -217,7 +217,7 @@ namespace Alterblade.GameObjects
 			return true;
 		}
 
-		public bool RemoveStatus(Status status)
+		public bool RemoveStatus(HeroStatus status)
 		{
 			return statuses.Remove(status);
 		}
@@ -225,7 +225,7 @@ namespace Alterblade.GameObjects
 		public void DisplayStats()
 		{
 			StringBuilder output = new StringBuilder();
-			output.Append("\n[yellow]HP[/yellow]: ");
+			output.Append("[yellow]HP[/yellow]: ");
 			int spaceCount = (int)Math.Ceiling(20F * currentStats[Stats.HP] / baseStats[Stats.HP]);
 			output.Append("[green]~");
 			for (int i = 0; i < spaceCount; i++)
@@ -251,7 +251,6 @@ namespace Alterblade.GameObjects
 				if (i != statuses.Count - 1)
 					output.Append(", ");
 			}
-			output.Append('\n');
 			Utils.WriteEmbeddedColorLine(output.ToString());
 		}
 

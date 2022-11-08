@@ -25,7 +25,8 @@ namespace Alterblade.Modes
 		public List<Hero> OpposingTeam => opposingTeam;
 
 		public List<Hero> HeroQueue = new List<Hero>();
-		public bool ReverseHeroQueue { get; set; }
+
+		public HeroQueueSort HeroQueueSort { get; set; } = HeroQueueSort.SPEED;
 
 		public Battle(List<Hero> team1, List<Hero> team2)
 		{
@@ -49,17 +50,11 @@ namespace Alterblade.Modes
 			output.AppendLine("- - - - - - - - - -");
 			if ( isTeamBattle )
 			{
-				output.AppendFormat(
-					"[red]{0}[/red] and [red]{1}[/red] vs [blue]{2}[/blue] and [blue]{3}[/blue]!\n",
-					team1[0].Name, team1[1].Name, team2[0].Name, team2[1].Name
-				);
+				output.AppendFormat("{0} and {1} vs {2} and {3}!\n", team1[0].Name, team1[1].Name, team2[0].Name, team2[1].Name);
 			}
 			else
 			{
-				output.AppendFormat(
-					"[red]{0}[/red] vs [blue]{1}[/blue]!\n",
-					team1[0].Name, team2[0].Name
-				);
+				output.AppendFormat("{0} vs {1}!\n", team1[0].Name, team2[0].Name);
 			}
 			output.Append("- - - - - - - - - -");
 			Utils.WriteEmbeddedColorLine(output.ToString());
@@ -67,22 +62,34 @@ namespace Alterblade.Modes
 			Utils.ClearScreen();
 		}
 
+		void SortHeroQueue()
+		{
+			HeroQueue = HeroQueue.OrderBy(delegate (Hero hero) { return Utils.Random.Next(); }).ToList();
+			switch (HeroQueueSort)
+			{
+				case HeroQueueSort.SPEED:
+				{
+					HeroQueue = HeroQueue.OrderByDescending(delegate (Hero hero) { return hero.CurrentStats[Stats.SPEED]; }).ToList();
+					break;
+				}
+				case HeroQueueSort.SPEED_REVERSED:
+				{
+					HeroQueue = HeroQueue.OrderBy(delegate (Hero hero) { return hero.CurrentStats[Stats.SPEED]; }).ToList();
+					break;
+				}
+			}
+		}
+
 		void Proceed()
 		{
 			turnCounter++;
 
-			// Handles SPEED ties so sorting them with come out as fairly random.
-			HeroQueue = HeroQueue.OrderBy(delegate (Hero hero) { return Utils.Random.Next(); }).ToList();
-			// Sorts the `HeroQueue` by each hero's SPEED in descending order.
-			HeroQueue = ReverseHeroQueue
-				? HeroQueue.OrderBy(delegate (Hero hero) { return hero.CurrentStats[Stats.SPEED]; }).ToList()
-				: HeroQueue.OrderByDescending(delegate (Hero hero) { return hero.CurrentStats[Stats.SPEED]; }).ToList();
+			SortHeroQueue();
 
 			string turningPlayer;
 
 			for (int i = 0; i < HeroQueue.Count; i++)
 			{
-
 				Hero turningHero = HeroQueue[i];
 
 				if (!turningHero.IsAlive) continue;
@@ -111,17 +118,17 @@ namespace Alterblade.Modes
 					// opposingPlayer = "[red]Player 1[/red]";
 				}
 
-				Utils.WriteEmbeddedColorLine("- [ [red]Player 1[/red] ] - - - - - - - - -");
+				Utils.WriteEmbeddedColorLine("\n- [ [red]Player 1[/red] ] - - - - - - - - -");
 				for (int j = 0; j < team1.Count; j++)
 				{
-					Console.Write("[" + (j + 1) + "] " + team1[j].Name);
+					Utils.WriteEmbeddedColorLine("[" + (j + 1) + "] " + team1[j].Name);
 					team1[j].DisplayStats();
 				}
 
-				Utils.WriteEmbeddedColorLine("- [ [blue]Player 2[/blue] ] - - - - - - - - -");
+				Utils.WriteEmbeddedColorLine("\n- [ [blue]Player 2[/blue] ] - - - - - - - - -");
 				for (int j = 0; j < team2.Count; j++)
 				{
-					Console.Write("[" + (j + 1) + "] " + team2[j].Name);
+					Utils.WriteEmbeddedColorLine("[" + (j + 1) + "] " + team2[j].Name);
 					team2[j].DisplayStats();
 				}
 
@@ -131,7 +138,7 @@ namespace Alterblade.Modes
 				}
 				else
 				{
-					Utils.WriteEmbeddedColorLine("[ " + turningPlayer + " ]: " + turningHero.Name + "'s Turn!");
+					Utils.WriteEmbeddedColorLine("\n[ " + turningPlayer + " ]: " + turningHero.Name + "'s Turn!");
 					turningHero.DoSkill(this);
 
 					// On-turn Updates
@@ -145,7 +152,6 @@ namespace Alterblade.Modes
 				}
 
 				Utils.Delay(1000);
-
 				UpdateTeamStates();
 
 				if (!isBattleOver)
@@ -157,7 +163,6 @@ namespace Alterblade.Modes
 				}
 
 				Utils.ClearScreen();
-
 			}
 
 		}

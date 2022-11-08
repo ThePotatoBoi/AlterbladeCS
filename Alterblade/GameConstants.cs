@@ -13,6 +13,69 @@ namespace Alterblade
 		RANDOM
 	}
 
+	enum StatusType
+	{
+		N_TAUNT,
+		N_DAMAGE_PER_TURN,
+		N_DEATH_NOTICE,
+		N_DISABLE,
+		P_CRITBOOST
+	}
+
+	enum BattleStatusType
+	{
+		TRICKROOM,
+	}
+
+	enum UpdateType
+	{
+		PRE,
+		TURN,
+		POST
+	}
+
+	enum SkillTarget
+	{
+		TARGET,
+		NONE,
+		ENEMYTEAM,
+		ALLYTEAM,
+	}
+
+	enum SkillAction
+	{
+		// General
+		DAMAGE,
+		DAMAGE_HEAL,
+		DAMAGE_RECOIL,
+		DAMAGE_IGNORE_DEFENSE,
+		SELF_STAT,
+		ENEMY_STAT,
+		SELF_STAT_CHANCE,
+		ENEMY_STAT_CHANCE,
+		HEAL_PERCENT,
+		HEAL_MISSING,
+		DOUBLEHITS,
+		TRIPLEHITS,
+		MULTIHITS,
+		TAUNT,
+
+		// Specials
+		CRITBOOST,
+
+		// Status
+		THORNS,
+		DISABLE,
+		DEATH_NOTICE,
+		POISON_CHANCE,
+	}
+
+	enum HeroQueueSort
+	{
+		SPEED,
+		SPEED_REVERSED,
+	}
+
 	internal static class GameConstants
 	{
 		public static List<Hero> HEROES = new List<Hero> {
@@ -102,9 +165,9 @@ namespace Alterblade
 				"Axel",
 				"Paladin",
 				new Dictionary<Stats, int> {
-					{ Stats.HP, 98 * 6 },
+					{ Stats.HP, 95 * 6 },
 					{ Stats.ATTACK, 75 },
-					{ Stats.DEFENSE, 112 },
+					{ Stats.DEFENSE, 110 },
 					{ Stats.SPEED, 55 },
 					{ Stats.CRIT_CHANCE, 6 }
 				},
@@ -112,13 +175,13 @@ namespace Alterblade
 					new Skill( "Zenith Blade", 75, 15, 0.95F,
 						new List<SkillAction>() { SkillAction.DAMAGE_IGNORE_DEFENSE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, false ),
-					new Skill( "Shield Bash", 65, 10, 0.9F,
+					new Skill( "Shield Bash", 50, 10, 0.9F,
 						new List<SkillAction>() { SkillAction.DAMAGE, SkillAction.ENEMY_STAT_CHANCE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { { Stats.DEFENSE, -1 } }, false ),
 					new Skill( "Taunt", 0, 5, 0,
 						new List<SkillAction>() { SkillAction.TAUNT }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, false ),
-					new Skill( "Holy Blessing", 25, 1, 0,
+					new Skill( "Holy Blessing", 20, 1, 0,
 						new List<SkillAction>() { SkillAction.HEAL_PERCENT, SkillAction.SELF_STAT }, SkillTarget.ALLYTEAM,
 						new Dictionary<Stats, int>() { { Stats.DEFENSE, 1 } }, true )
 				},

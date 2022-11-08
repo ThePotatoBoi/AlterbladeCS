@@ -35,7 +35,7 @@ namespace Alterblade
 			battleModeSelection.Choose();
 		}
 
-		public Hero HeroSelector(string query)
+		public static Hero HeroSelector(string query)
 		{
 			int count = 3;
 			int from = 0;
@@ -56,7 +56,7 @@ namespace Alterblade
 				output.Append("  0 [red]Next Page[/red]\n");
 				Utils.WriteEmbeddedColorLine(output.ToString());
 
-				int input = Utils.GetInteger(0, 3, query);
+				int input = Utils.GetInteger(0, index, query);
 				Utils.ClearScreen();
 				if (input == 0)
 				{
@@ -82,12 +82,22 @@ namespace Alterblade
 				if (i % 2 == 0)
 				{
 					Hero hero = HeroSelector("[red]Player 1[/red] Hero: ");
-					team1.Add(new Hero(hero.Name, hero.Title, hero.BaseStats, hero.Skills, team1));
+					team1.Add(
+						new Hero(
+							new StringBuilder().AppendFormat("[red]{0}[/red]", hero.Name).ToString(),
+							hero.Title, hero.BaseStats, hero.Skills, team1
+						)	
+					);
 				}
 				else
 				{
 					Hero hero = HeroSelector("[blue]Player 2[/blue] Hero: ");
-					team2.Add(new Hero(hero.Name, hero.Title, hero.BaseStats, hero.Skills, team2));
+					team2.Add(
+						new Hero(
+							new StringBuilder().AppendFormat("[blue]{0}[/blue]", hero.Name).ToString(),
+							hero.Title, hero.BaseStats, hero.Skills, team2
+						)
+					);
 				}
 			}
 
