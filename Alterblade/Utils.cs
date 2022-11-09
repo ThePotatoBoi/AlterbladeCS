@@ -169,29 +169,33 @@ namespace Alterblade
 			return Random.NextDouble() < chance;
 		}
 
-		public static int CalculateDamage(int baseDamage, Hero source, Hero target, bool isCrit)
+		public static int CalculateDamage(int baseDamage, bool isCrit, bool ignoreDefense, int attackerAttack, int targetDefense, int targetBaseDefense)
 		{
-			return CalculateDamage(baseDamage, isCrit, source.CurrentStats[Stats.ATTACK], target.CurrentStats[Stats.DEFENSE], target.BaseStats[Stats.DEFENSE]);
-		}
-
-		public static int CalculateDamage(int baseDamage, bool isCrit, int attackerAttack, int targetDefense, int targetBaseDefense)
-		{
-			if (isCrit)
-				targetDefense = Math.Clamp(targetDefense, 0, targetBaseDefense);
+			int defense = isCrit || ignoreDefense ? Math.Clamp(targetDefense, 0, targetBaseDefense) : targetDefense;
 			float multiplier = isCrit ? 1.5F : 1F;
-			float staple = (30F * baseDamage * attackerAttack / (targetDefense * 40F)) + 15F;
+			float staple = (3F * baseDamage * attackerAttack / (defense * 5F)) + 12F;
 			float bonusMultiplier = 0.9F + Convert.ToSingle(0.2F * Utils.Random.NextDouble());
 			return Convert.ToInt32(staple * bonusMultiplier * multiplier);
+		}
+
+		public static int CalculateDamage(int baseDamage, bool isCrit, Hero attacker, Hero target)
+		{
+			return CalculateDamage(
+				baseDamage,
+				isCrit,
+				false,
+				attacker.CurrentStats[Stats.ATTACK],
+				target.CurrentStats[Stats.DEFENSE],
+				target.BaseStats[Stats.DEFENSE]
+			);
 		}
 
 		public static bool RollAccuracy(float accuracy, float targetEvasiveness, bool showText)
 		{
 			if (accuracy <= 0) return true;
-			bool willHit = Utils.RollBoolean(accuracy - targetEvasiveness);
+			bool willHit = RollBoolean(accuracy - targetEvasiveness);
 			if (!willHit && showText)
-			{
 				Error("The attack missed!");
-			}
 			return willHit;
 		}
 	}

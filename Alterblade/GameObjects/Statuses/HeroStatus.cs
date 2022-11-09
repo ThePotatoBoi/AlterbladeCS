@@ -13,8 +13,8 @@ namespace Alterblade.GameObjects.Statuses
 		public Hero Hero => hero;
 		public bool IsNegative => isNegative;
 
-		public HeroStatus(string name, int duration, Hero hero, Hero source, Skill sourceSkill, StatusType statusType, UpdateType updateType)
-			: base(name, duration, source, sourceSkill, updateType)
+		public HeroStatus(string name, int duration, Hero hero, Hero source, Skill sourceSkill, StatusType statusType)
+			: base(name, duration, source, sourceSkill)
 		{
 			this.hero = hero;
 			this.statusType = statusType;
@@ -56,6 +56,12 @@ namespace Alterblade.GameObjects.Statuses
 				{
 					hero.PriorityTarget = Hero.None;
 					output.AppendFormat("{0}'s [cyan]{1}[/cyan] ended.", hero.Name, name);
+					break;
+				}
+				case StatusType.N_FEEBLE:
+				{
+					hero.IsFeeble = false;
+					output.AppendFormat("{0} was freed from [cyan]{1}[/cyan].", hero.Name, name);
 					break;
 				}
 			}
@@ -100,6 +106,7 @@ namespace Alterblade.GameObjects.Statuses
 					}
 					break;
 				}
+
 			}
 			return true;
 		}

@@ -1,6 +1,7 @@
 ﻿using Alterblade.Modes;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,13 +11,13 @@ namespace Alterblade.GameObjects.Statuses
 	internal class BattleStatus : Status
 	{
 
-		BattleStatusType battleStatusType;
-		Battle battle;
+		readonly BattleStatusType battleStatusType;
+		readonly Battle battle;
 
 		public BattleStatusType BattleStatusType => battleStatusType;
 
-		public BattleStatus(string name, int duration, Battle battle, Hero source, Skill sourceSkill, BattleStatusType battleStatusType, UpdateType updateType)
-			: base(name, duration, source, sourceSkill, updateType)
+		public BattleStatus(string name, int duration, Battle battle, Hero source, Skill sourceSkill, BattleStatusType battleStatusType)
+			: base(name, duration, source, sourceSkill)
 		{
 			this.battleStatusType = battleStatusType;
 			this.battle = battle;
@@ -33,10 +34,16 @@ namespace Alterblade.GameObjects.Statuses
 					output.AppendFormat("The twisting dimensions turned to normal.");
 					break;
 				}
+				case BattleStatusType.SCORCH:
+				{
+					Utils.WriteEmbeddedColorLine("The raging [cyan]Scorch[/cyan] subsided.");
+					break;
+				}
 			}
 			if (showText)
 				Utils.WriteEmbeddedColorLine(output.ToString());
-			return true;
+
+			return battle.RemoveBattleStatus(this);
 		}
 
 		public override bool Update()
@@ -51,7 +58,22 @@ namespace Alterblade.GameObjects.Statuses
 				case BattleStatusType.TRICKROOM:
 				{
 					Utils.WriteEmbeddedColorLine("The dimensions are twisting disorderly.");
-					battle.HeroQueueSort = HeroQueueSort.SPEED_REVERSED;
+					break;
+				}
+				case BattleStatusType.SCORCH:
+				{
+					Utils.WriteEmbeddedColorLine("The [cyan]Scorch[/cyan] is engulfing the battlefield!");
+					for (int i = 0; i < battle.HeroQueue.Count; i++)
+					{
+						Hero hero = battle.HeroQueue[i];
+						Debug.WriteLine(hero.Statuses.Count);
+						if (hero.Statuses.Count > 0)
+						{
+							float percentDamage = 0.1F * hero.Statuses.Count;
+							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} was afflicted with [cyan]Scorch[/cyan]!", hero.Name).ToString());
+							hero.TakeDamage(percentDamage, false);
+						}
+					}
 					break;
 				}
 			}

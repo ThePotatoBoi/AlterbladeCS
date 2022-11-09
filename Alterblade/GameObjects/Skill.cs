@@ -2,6 +2,7 @@
 using Alterblade.Modes;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -51,8 +52,8 @@ namespace Alterblade.GameObjects
 		public Skill(
 			string name, int baseDamage, int skillPoint, float accuracy,
 			List<SkillAction> skillActions, SkillTarget skillTarget,
-			Dictionary<Stats, int> statEffects, bool isUltimate)
-		{
+			Dictionary<Stats, int> statEffects, bool isUltimate
+		) {
 			this.name = name;
 			this.baseDamage = baseDamage;
 			this.skillPoint = skillPoint;
@@ -62,7 +63,9 @@ namespace Alterblade.GameObjects
 			this.statEffects = statEffects;
 			this.isUltimate = isUltimate;
 			isDamaging = baseDamage > 0;
-			isRepeating = skillActions.Contains(SkillAction.DOUBLEHITS) || skillActions.Contains(SkillAction.TRIPLEHITS) || skillActions.Contains(SkillAction.MULTIHITS);
+			isRepeating = skillActions.Contains(SkillAction.DOUBLEHITS)
+				|| skillActions.Contains(SkillAction.TRIPLEHITS)
+				|| skillActions.Contains(SkillAction.MULTIHITS);
 		}
 
 		public Skill(Skill skill)
@@ -137,10 +140,10 @@ namespace Alterblade.GameObjects
 				count++;
 				bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE] * 0.01F);
 				Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} hits! {1}", count, willCrit ? "[red]It's a critical hit![/red]" : "").ToString());
-				int damage = Utils.CalculateDamage(baseDamage, hero, target, willCrit);
+				int damage = Utils.CalculateDamage(baseDamage, willCrit, hero, target);
 				sum += damage;
 			}
-			Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("A total of {0} damage!", sum).ToString());
+			Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} receives a total of {1} damage!", target.Name, sum).ToString());
 			target.TakeDamage(sum, false);
 		}
 
@@ -148,6 +151,7 @@ namespace Alterblade.GameObjects
 		{
 			for (int i = 0; i < skillActions.Count; i++)
 			{
+				bool isSecondary = i > 1;
 				switch (skillActions[i])
 				{
 					case SkillAction.DAMAGE:
@@ -161,28 +165,30 @@ namespace Alterblade.GameObjects
 					}
 					case SkillAction.DAMAGE_HEAL:
 					{
-						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE]);
-						int damage = Utils.CalculateDamage(baseDamage, hero, target, willCrit);
-						target.TakeDamage(damage, true);
+						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE] * 0.01F);
+						int damage = Utils.CalculateDamage(baseDamage, willCrit, hero, target);
+						target.TakeDamage(damage, true, willCrit);
 						hero.Heal(Convert.ToInt32(damage * 0.5F), true);
 						break;
 					}
 					case SkillAction.DAMAGE_RECOIL:
 					{
-						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE]);
-						int damage = Utils.CalculateDamage(baseDamage, hero, target, willCrit);
+						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE] * 0.01F);
+						int damage = Utils.CalculateDamage(baseDamage, willCrit, hero, target);
 						int recoil = Convert.ToInt32(damage * 0.25F);
 						target.TakeDamage(damage, true);
 						Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} is hurt by {1} recoil damage.", hero.Name, recoil).ToString());
 						hero.TakeDamage(recoil, false);
 						break;
 					}
-					case SkillAction.DAMAGE_IGNORE_DEFENSE:
+					case SkillAction.DAMAGE_IGNORE_TARGET_DEFENSE:
 					{
-						bool willCrit = Utils.RollBoolean(hero.CurrentStats[Stats.CRIT_CHANCE] * 0.01F);
-						int defense = Math.Clamp(target.CurrentStats[Stats.DEFENSE], 0, target.BaseStats[Stats.DEFENSE]);
-						int damage = Utils.CalculateDamage(baseDamage, willCrit, hero.CurrentStats[Stats.ATTACK], defense, target.BaseStats[Stats.DEFENSE]);
-						target.TakeDamage(damage, true, willCrit);
+						target.TakeDamage(baseDamage, hero.CurrentStats[Stats.ATTACK], true, true);
+						break;
+					}
+					case SkillAction.DAMAGE_SCALE_WITH_TARGET_ATTACK:
+					{
+						target.TakeDamage(baseDamage, target.CurrentStats[Stats.ATTACK], true);
 						break;
 					}
 					case SkillAction.SELF_STAT:
@@ -236,38 +242,47 @@ namespace Alterblade.GameObjects
 					}
 					case SkillAction.HEAL_PERCENT:
 					{
-						hero.Heal(0.01F * baseDamage, false, true);
+						hero.Heal(0.01F * -baseDamage, false, true);
 						break;
 					}
 					case SkillAction.HEAL_MISSING:
 					{
-						hero.Heal(0.01F * baseDamage, true, true);
+						hero.Heal(0.01F * -baseDamage, true, true);
 						break;
 					}
 					case SkillAction.THORNS:
 					{
-						int duration = Utils.Random.Next(2, 5);
-						HeroStatus status = new HeroStatus("Thorns", duration, target, hero, this, StatusType.N_DAMAGE_PER_TURN, UpdateType.TURN);
-						if (target.AddStatus(status))
+						HeroStatus status = new HeroStatus("Thorns", 5, target, hero, this, StatusType.N_DAMAGE_PER_TURN);
+						if (target.AddStatus(status, !isSecondary))
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} summoned a cluster of thorns around {1}!", hero.Name, target.Name).ToString());
+						break;
+					}
+					case SkillAction.FEEBLE:
+					{
+						HeroStatus status = new HeroStatus("Feeble", 3, target, hero, this, StatusType.N_FEEBLE);
+						if (target.AddStatus(status, !isSecondary))
+						{
+							target.IsFeeble = true;
+							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} was put into [cyan]Feeble[/cyan]!", target.Name).ToString());
+						}
 						break;
 					}
 					case SkillAction.DEATH_NOTICE:
 					{
-						HeroStatus status = new HeroStatus("Death Notice", 3, target, hero, this, StatusType.N_DEATH_NOTICE, UpdateType.TURN);
-						if (target.AddStatus(status))
+						HeroStatus status = new HeroStatus("Death Notice", 3, target, hero, this, StatusType.N_DEATH_NOTICE);
+						if (target.AddStatus(status, !isSecondary))
+						{
+							target.IsFeeble = true;
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} became subjected to [cyan]Death Notice[/cyan]!", target.Name).ToString());
+						}
 						break;
 					}
 					case SkillAction.DISABLE:
 					{
-						HeroStatus status = new HeroStatus("Disable", 2, target, hero, this, StatusType.N_DISABLE, UpdateType.TURN);
+						HeroStatus status = new HeroStatus("Disable", 2, target, hero, this, StatusType.N_DISABLE);
 						if (target.LastSkillUsed == Skill.None)
-						{
 							Utils.Error("But it failed...");
-							break;
-						}
-						if (target.AddStatus(status))
+						else if (target.AddStatus(status, !isSecondary))
 						{
 							target.LastSkillUsed.IsDisabled = true;
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0}'s [cyan]{1}[/cyan] has been disabled!", target.Name, target.LastSkillUsed.Name).ToString());
@@ -276,8 +291,8 @@ namespace Alterblade.GameObjects
 					}
 					case SkillAction.CRITBOOST:
 					{
-						HeroStatus status = new HeroStatus("Crit Boost", 4, hero, hero, this, StatusType.P_CRITBOOST, UpdateType.TURN);
-						if (hero.AddStatus(status))
+						HeroStatus status = new HeroStatus("Crit Boost", 4, hero, hero, this, StatusType.P_CRITBOOST);
+						if (hero.AddStatus(status, !isSecondary))
 						{
 							hero.CurrentStats[Stats.CRIT_CHANCE] += 20;
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0}'s [cyan]Crit Boost[/cyan] is heightened!", hero.Name).ToString());
@@ -286,15 +301,62 @@ namespace Alterblade.GameObjects
 					}
 					case SkillAction.TAUNT:
 					{
-						HeroStatus status = new HeroStatus("Taunt", 2, target, hero, this, StatusType.N_TAUNT, UpdateType.TURN);
-						if (target.AddStatus(status))
+						HeroStatus status = new HeroStatus("Taunt", 2, target, hero, this, StatusType.N_TAUNT);
+						if (target.AddStatus(status, !isSecondary))
 						{
 							target.PriorityTarget = hero;
 							Utils.WriteEmbeddedColorLine(new StringBuilder().AppendFormat("{0} fell on {1}'s [cyan]{2}[/cyan]!", target.Name, hero.Name, status.Name).ToString());
 						}
 						break;
 					}
+					case SkillAction.TRICKROOM:
+					{
+						BattleStatus status = new BattleStatus("Trick Room", 4, battle, hero, this, BattleStatusType.TRICKROOM);
+						if (battle.AddBattleStatus(status))
+						{
+							StringBuilder output = new StringBuilder();
+							battle.HeroQueueSort = HeroQueueSort.SPEED_REVERSED;
+							output.AppendFormat("{0} started twisting the dimensions!", hero.Name);
+							Utils.WriteEmbeddedColorLine(output.ToString());
+						}
+						else
+							status.End(true);
+						break;
+					}
+					case SkillAction.MIMIC:
+					{
+						Skill skill = target.LastSkillUsed;
+						if (skill == Skill.None)
+						{
+							Utils.Error("But it failed...");
+							break;
+						}
+						else if (skill.isUltimate)
+						{
+							Utils.Error("Skill is too powerful to copy!");
+							break;
+						}
+						skill = new Skill(skill);
+						skill.skillPoint++;
+						hero.DoSkill(battle, skill);
+						break;
+					}
+					case SkillAction.SCORCH:
+					{
+						BattleStatus status = new BattleStatus("Scorch", 3, battle, hero, this, BattleStatusType.SCORCH);
+						if (battle.AddBattleStatus(status))
+						{
+							Utils.WriteEmbeddedColorLine(
+								new StringBuilder().AppendFormat("The battlefield was put on [cyan]{0}[/cyan]!", status.Name).ToString()
+							);
+						}
+						else
+							status.End(true);
+						break;
+					}
 				}
+				if (isDamaging)
+					target.LastSkillHit = this;
 			}
 		}
 	}

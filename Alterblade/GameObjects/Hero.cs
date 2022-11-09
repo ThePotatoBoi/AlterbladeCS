@@ -12,6 +12,7 @@ namespace Alterblade.GameObjects
 		#region Constants
 
 		readonly static Hero none = new Hero("Unknown", "???", new Dictionary<Stats, int>(), new List<Skill>(), null);
+		public static Hero None => none;
 
 		#endregion
 
@@ -24,8 +25,11 @@ namespace Alterblade.GameObjects
 		readonly List<Hero> team;
 		readonly Dictionary<Stats, int> baseStats = new Dictionary<Stats, int>();
 		readonly Dictionary<Stats, int> currentStats = new Dictionary<Stats, int>();
+		readonly Dictionary<Stats, int> statModifiers = new Dictionary<Stats, int>() { { Stats.ATTACK, 0 }, { Stats.DEFENSE, 0 }, { Stats.SPEED, 0 } };
 		readonly List<HeroStatus> statuses = new List<HeroStatus>();
+
 		bool isAlive = true;
+		bool isFeeble = false;
 		bool isSupressed = false;
 
 		#endregion
@@ -36,16 +40,16 @@ namespace Alterblade.GameObjects
 		public List<Skill> Skills => skills;
 		public Dictionary<Stats, int> BaseStats => baseStats;
 		public Dictionary<Stats, int> CurrentStats => currentStats;
-		public List<HeroStatus> Statuses => statuses;
 		public List<Hero> Team => team;
+		public List<HeroStatus> Statuses => statuses;
 		public Skill LastSkillUsed { get; set; }
 		public Skill LastSkillHit { get; set; }
 		public Hero PriorityTarget { get; set; }
 		public Hero LastHeroAttacker { get; set; }
 		public bool IsAlive => isAlive;
 		public bool IsSupressed => isSupressed;
-		public static Hero None => none;
-
+		public bool IsFeeble { get { return isFeeble; } set { isFeeble = value; UpdateStats(); } }
+		public float HealingScale { get; set; } = 1F;
 		public string StatisticsBanner
 		{
 			get
@@ -56,6 +60,79 @@ namespace Alterblade.GameObjects
 				output.AppendFormat("  █ ATK {0, 4}     █ {1}\n", currentStats[Stats.ATTACK], skills[1].Name);
 				output.AppendFormat("  █ DEF {0, 4}     █ {1}\n", currentStats[Stats.DEFENSE], skills[2].Name);
 				output.AppendFormat("  █ SPE {0, 4}     █ {1}\n", currentStats[Stats.SPEED], skills[3].Name);
+				return output.ToString();
+			}
+		}
+		public string InBattleStatisticsBanner
+		{
+			get
+			{
+				StringBuilder output = new StringBuilder();
+
+				StringBuilder greenBar = new StringBuilder();
+				StringBuilder magentaBar = new StringBuilder();
+
+				int spaceCount = (int)Math.Ceiling(20F * currentStats[Stats.HP] / baseStats[Stats.HP]);
+				for (int i = 0; i < spaceCount; i++)
+					greenBar.Append(' ');
+				for (int i = 0; i < 20 - spaceCount; i++)
+					magentaBar.Append(' ');
+#if DEBUG
+				output.AppendFormat("{0}\t [green]~{1}[/green][magenta]~{2}[/magenta] {3}/{4}\n", name, greenBar, magentaBar, currentStats[Stats.HP], baseStats[Stats.HP]);
+#else
+				output.AppendFormat("{0}\t [green]~{1}[/green][magenta]~{2}[/magenta] {3}\n", name, greenBar, magentaBar, currentStats[Stats.HP]);
+#endif
+				for (int i = 0; i < statuses.Count; i++)
+				{
+					if (i == 0) { output.Append("    █ "); }
+					string color = statuses[i].IsNegative ? "red" : "green";
+					output.AppendFormat("[{2}]{0}({1})[/{2}]", statuses[i].Name, statuses[i].Duration, color);
+					if (i != statuses.Count - 1)
+						output.Append(", ");
+					else
+						output.Append('\n');
+				}
+#if DEBUG
+				output.AppendFormat(
+					"    █ ATK {0, -7} SPE {1}\n",
+					new StringBuilder().AppendFormat("{0, 3}/{1, -3}", currentStats[Stats.ATTACK], baseStats[Stats.ATTACK]).ToString().Trim(),
+					new StringBuilder().AppendFormat("{0, 3}/{1, -3}", currentStats[Stats.SPEED], baseStats[Stats.SPEED]).ToString().Trim()
+				);
+				output.AppendFormat(
+					"    █ DEF {0, -7} CRI {1}%",
+					new StringBuilder().AppendFormat("{0, 3}/{1, -3}", currentStats[Stats.DEFENSE], baseStats[Stats.DEFENSE]).ToString().Trim(),
+					currentStats[Stats.CRIT_CHANCE]
+				);
+#else
+				output.AppendFormat(
+					"    █ ATK {0, -6} SPE {1}\n",
+					currentStats[Stats.ATTACK],
+					currentStats[Stats.SPEED]
+				);
+				output.AppendFormat(
+					"    █ DEF {0, -6} CRI {1}%",
+					currentStats[Stats.DEFENSE],
+					currentStats[Stats.CRIT_CHANCE]
+				);
+#endif
+				return output.ToString();
+			}
+		}
+		public string InBattleSkillsBanner
+		{
+			get
+			{
+				StringBuilder output = new StringBuilder();
+				for (int i = 0; i < skills.Count; i++)
+				{
+					output.AppendFormat(
+						"  [cyan]{0, -20}[/cyan] | {1, -3} | {2, -4}| {3}\n",
+						skills[i].Name,
+						skills[i].BaseDamage < 1 ? "-" : skills[i].BaseDamage,
+						skills[i].Accuracy <= 0 ? '-' : new StringBuilder().Append(Convert.ToInt32(skills[i].Accuracy * 100)).Append('%'),
+						skills[i].SkillPoint
+					);
+				}
 				return output.ToString();
 			}
 		}
@@ -86,8 +163,6 @@ namespace Alterblade.GameObjects
 
 		#endregion
 
-		#region Methods
-
 		void CheckAliveCondition()
 		{
 			if (currentStats[Stats.HP] < 1)
@@ -97,27 +172,31 @@ namespace Alterblade.GameObjects
 			}
 		}
 
+		#region Damage Handlers
+
 		public void TakeDamage(int trueAmount, bool showText, bool isCrit = false)
 		{
 			if (!isAlive) { return; }
+			trueAmount = Math.Clamp(trueAmount, 0, currentStats[Stats.HP]);
 			currentStats[Stats.HP] = Math.Clamp(currentStats[Stats.HP] - trueAmount, 0, baseStats[Stats.HP]);
 			if (showText)
 			{
-				string output = new StringBuilder().AppendFormat("{0} takes {1} damage! {2}", name, trueAmount, isCrit ? "[red]It's a critical hit![/red]" : "").ToString();
-				Utils.WriteEmbeddedColorLine(output);
+				StringBuilder output = new StringBuilder();
+				output.AppendFormat("{0} takes {1} damage! {2}", name, trueAmount, isCrit ? "[red]It's a critical hit![/red]" : "").ToString();
+				Utils.WriteEmbeddedColorLine(output.ToString());
 			}
 			CheckAliveCondition();
 		}
 
-		public void TakeDamage(int baseDamage, int attackerAttack, bool showText, bool isCrit)
+		public void TakeDamage(int baseDamage, int attackerAttack, bool showText, bool isCrit, bool ignoreDefense = false)
 		{
-			int damage = Utils.CalculateDamage(baseDamage, isCrit, attackerAttack, currentStats[Stats.DEFENSE], baseStats[Stats.DEFENSE]);
+			int damage = Utils.CalculateDamage(baseDamage, isCrit, ignoreDefense, attackerAttack, currentStats[Stats.DEFENSE], baseStats[Stats.DEFENSE]);
 			TakeDamage(damage, showText, isCrit);
 		}
 
-		public void TakeDamage(int baseDamage, int attackerAttack, bool showText)
+		public void TakeDamage(int baseDamage, int attackerAttack, bool showText, bool ignoreDefense = false)
 		{
-			TakeDamage(baseDamage, attackerAttack, showText, Utils.RollBoolean(currentStats[Stats.CRIT_CHANCE] * 0.01F));
+			TakeDamage(baseDamage, attackerAttack, showText, Utils.RollBoolean(currentStats[Stats.CRIT_CHANCE] * 0.01F), ignoreDefense);
 		}
 
 		public void TakeDamage(float percent, bool showText)
@@ -137,73 +216,99 @@ namespace Alterblade.GameObjects
 			CheckAliveCondition();
 		}
 
-		public void Heal(float percent, bool isMissingHP, bool showText)
+		public void Heal(float percent, bool isScaleWithMissingHP, bool showText)
 		{
-			int staple = isMissingHP
+			int staple = isScaleWithMissingHP
 				? baseStats[Stats.HP] - currentStats[Stats.HP]
 				: baseStats[Stats.HP];
 			Heal( Convert.ToInt32(percent * staple), showText );
 		}
 
-		public void DoSkill(Battle battle)
+		#endregion
+
+		public void DoSkill(Battle battle, Skill? skill = null)
 		{
-			Skill skill;
-			DisplaySkills();
+			if (skill is null)
+				Utils.WriteEmbeddedColorLine(InBattleSkillsBanner);
 			while (true)
 			{
-				skill = skills[Utils.GetInteger(1, 4, "[yellow]Skill:[/yellow] ") - 1];
-				if (skill.Activate(this, battle)) break;
+				if (skill is null)
+				{
+					int input = Utils.GetInteger(1, 4, new StringBuilder().AppendFormat("{0}: ", name).ToString());
+					skill = skills[input - 1];
+				}
+				if (skill.Activate(this, battle)) { break; } else { skill = null; }
 			}
 			LastSkillUsed = skill;
 		}
 
-		public bool ModifyStats(Stats stat, int amount)
+		public bool ModifyStats(Stats stat, int amount, bool showText = true)
 		{
 			if (amount == 0) { return false; }
+			if (stat == Stats.RANDOM) { stat = (Stats) Utils.Random.Next(1, 4); }
 
-			if (Convert.ToInt32(stat) < 1 && Convert.ToInt32(stat) > 3)
+			if (Convert.ToInt32(stat) < 1 || Convert.ToInt32(stat) > 3)
 			{
-				Utils.Error("Such Stat cannot be modified.");
+				Utils.Error("Such STAT cannot be modified.");
 				return false;
 			}
 
-			if ( stat == Stats.RANDOM ) { stat = (Stats)Utils.Random.Next(1, 4); }
-
 			amount = Math.Clamp(amount, -3, 3);
-			int delta = Convert.ToInt32(baseStats[stat] * 0.25F);
+			int temp = statModifiers[stat];
+			statModifiers[stat] = Math.Clamp(statModifiers[stat] + amount, -3, 6);
+			int delta = statModifiers[stat] - temp;
+			UpdateStats();
+
 			string prefix = amount < 0 ? "fell" : "rose";
 			string adverb = "";
-
-			if (Math.Abs(amount) > 1) {  adverb = (Math.Abs(amount) == 2 ? "sharply" : "drastically") + " "; }
+			if (Math.Abs(delta) > 1) adverb = Math.Abs(delta) == 2 ? "sharply " : "drastically ";
 
 			StringBuilder output = new StringBuilder();
-
-			if (currentStats[stat] <= baseStats[stat] - (delta * 3) || currentStats[stat] >= baseStats[stat] + (delta * 6))
+			if (delta == 0)
 			{
-				prefix = amount < 0 ? "lowered" : "raised";
-				output.AppendFormat("{0}'s {1} cannot be {2} anymore!", name, stat.ToString(), prefix); 
-				Utils.Error(output.ToString());
+				if (showText)
+				{
+					prefix = amount < 0 ? "lowered" : "raised";
+					output.AppendFormat("{0}'s {1} cannot be {2} anymore!", name, stat.ToString(), prefix);
+					Utils.Error(output.ToString());
+				}
 				return false;
 			}
 			else
 			{
-				currentStats[stat] = currentStats[stat] + (delta * amount);
-				output.AppendFormat("{0}'s {1} {2}{3}!", name, stat.ToString(), adverb, prefix);
-				Utils.WriteEmbeddedColorLine(output.ToString());
+				if (showText)
+				{
+					output.AppendFormat("{0}'s {1} {2}{3}!", name, stat.ToString(), adverb, prefix);
+					Utils.WriteEmbeddedColorLine(output.ToString());
+				}
 				return true;
+			}
+			
+		}
+
+		void UpdateStats()
+		{
+			for (int i = 1; i < 4; i++)
+			{
+				currentStats[(Stats) i] = baseStats[(Stats) i];
+				int delta = Convert.ToInt32(baseStats[(Stats) i] * 0.25F);
+				currentStats[(Stats) i] = currentStats[(Stats)i] + (statModifiers[(Stats) i] * delta);
+				if (i == 1 && IsFeeble)
+					currentStats[(Stats)i] = Convert.ToInt32(currentStats[(Stats)i] * 0.5F);
 			}
 		}
 
-		public void UpdateStatuses(UpdateType updateType)
+		#region Status Handlers
+
+		public void UpdateStatuses()
 		{
 			for (int i = 0; i < statuses.Count; i++)
 			{
-				if (statuses[i].UpdateType == updateType)
-					statuses[i].Update();
+				statuses[i].Update();
 			}
 		}
 
-		public bool AddStatus(HeroStatus status)
+		public bool AddStatus(HeroStatus status, bool showText)
 		{
 			for (int i = 0; i < statuses.Count; i++)
 			{
@@ -220,54 +325,6 @@ namespace Alterblade.GameObjects
 		public bool RemoveStatus(HeroStatus status)
 		{
 			return statuses.Remove(status);
-		}
-
-		public void DisplayStats()
-		{
-			StringBuilder output = new StringBuilder();
-			output.Append("[yellow]HP[/yellow]: ");
-			int spaceCount = (int)Math.Ceiling(20F * currentStats[Stats.HP] / baseStats[Stats.HP]);
-			output.Append("[green]~");
-			for (int i = 0; i < spaceCount; i++)
-				output.Append(' ');
-			output.Append("[/green]");
-			output.Append("[magenta]~");
-			for (int i = 0; i < 20 - spaceCount; i++)
-				output.Append(' ');
-			output.Append("[/magenta]");
-			output.AppendFormat(" {0}/{1}\n", currentStats[Stats.HP], baseStats[Stats.HP]);
-			output.AppendFormat(
-				"[yellow]ATK[/yellow]: {0, -7} [yellow]DEF[/yellow]: {1, -7} [yellow]SPE[/yellow]: {2, -7} [yellow]CRI[/yellow]: {3}%\n",
-			 	new StringBuilder().AppendFormat("{0, 3}/{1, -3}", currentStats[Stats.ATTACK], baseStats[Stats.ATTACK]).ToString().Trim(),
-				new StringBuilder().AppendFormat("{0, 3}/{1, -3}", currentStats[Stats.DEFENSE], baseStats[Stats.DEFENSE]).ToString().Trim(),
-				new StringBuilder().AppendFormat("{0, 3}/{1, -3}", currentStats[Stats.SPEED], baseStats[Stats.SPEED]).ToString().Trim(),
-				currentStats[Stats.CRIT_CHANCE]
-			);
-			output.Append("[yellow]STATUS[/yellow]: ");
-			for (int i = 0; i < statuses.Count; i++)
-			{
-				string color = statuses[i].IsNegative ? "red" : "green";
-				output.AppendFormat("[{2}]{0} ({1})[/{2}]", statuses[i].Name, statuses[i].Duration, color);
-				if (i != statuses.Count - 1)
-					output.Append(", ");
-			}
-			Utils.WriteEmbeddedColorLine(output.ToString());
-		}
-
-		public void DisplaySkills()
-		{
-			StringBuilder output = new StringBuilder();
-			for (int i = 0; i < skills.Count; i++)
-			{
-				output.AppendFormat(
-					"  [cyan]{0, -20}[/cyan] | {1, -3} | {2, -4}| {3}\n",
-					skills[i].Name,
-					skills[i].BaseDamage < 1 ? "-" : skills[i].BaseDamage,
-					skills[i].Accuracy <= 0 ? '-' : new StringBuilder().Append(Convert.ToInt32(skills[i].Accuracy * 100)).Append('%'),
-					skills[i].SkillPoint
-				);
-			}
-			Utils.WriteEmbeddedColorLine(output.ToString());
 		}
 
 		#endregion

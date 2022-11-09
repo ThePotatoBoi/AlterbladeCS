@@ -2,6 +2,7 @@
 using Alterblade.GameObjects.Statuses;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -16,15 +17,15 @@ namespace Alterblade.Modes
 
 		List<Hero> turningTeam;
 		List<Hero> opposingTeam;
+		List<BattleStatus> battleStatuses = new List<BattleStatus>();
 
-		readonly bool isTeamBattle = false;
 		bool isBattleOver = false;
 		int turnCounter = 0;
 
 		public List<Hero> TurningTeam => turningTeam;
 		public List<Hero> OpposingTeam => opposingTeam;
-
-		public List<Hero> HeroQueue = new List<Hero>();
+		public List<Hero> HeroQueue { get; private set; } = new List<Hero>();
+		public List<BattleStatus> BattleStatuses => battleStatuses;
 
 		public HeroQueueSort HeroQueueSort { get; set; } = HeroQueueSort.SPEED;
 
@@ -32,7 +33,6 @@ namespace Alterblade.Modes
 		{
 			this.team1 = turningTeam = team1;
 			this.team2 = opposingTeam = team2;
-			if (team1.Count > 1) isTeamBattle = true;
 			HeroQueue.AddRange(team1);
 			HeroQueue.AddRange(team2);
 		}
@@ -47,18 +47,15 @@ namespace Alterblade.Modes
 		{
 			Utils.ClearScreen();
 			StringBuilder output = new StringBuilder();
-			output.AppendLine("- - - - - - - - - -");
-			if ( isTeamBattle )
-			{
-				output.AppendFormat("{0} and {1} vs {2} and {3}!\n", team1[0].Name, team1[1].Name, team2[0].Name, team2[1].Name);
-			}
-			else
-			{
-				output.AppendFormat("{0} vs {1}!\n", team1[0].Name, team2[0].Name);
-			}
-			output.Append("- - - - - - - - - -");
+			output.AppendLine("███ BATTLE █████████████████");
+			output.Append("\n█ [red]Player 1[/red]\n");
+			for (int i = 0; i < team1.Count; i++)
+				output.AppendFormat("  {0}\n", team1[i].Name);
+			output.Append("\n█ [blue]Player 2[/blue]\n");
+			for (int i = 0; i < team2.Count; i++)
+				output.AppendFormat("  {0}\n", team2[i].Name);
 			Utils.WriteEmbeddedColorLine(output.ToString());
-			Utils.Delay(2500);
+			Utils.Delay(5000);
 			Utils.ClearScreen();
 		}
 
@@ -83,72 +80,54 @@ namespace Alterblade.Modes
 		void Proceed()
 		{
 			turnCounter++;
-
 			SortHeroQueue();
-
-			string turningPlayer;
 
 			for (int i = 0; i < HeroQueue.Count; i++)
 			{
 				Hero turningHero = HeroQueue[i];
+				StringBuilder output = new StringBuilder();
 
 				if (!turningHero.IsAlive) continue;
 				if (isBattleOver) break;
 
-				Utils.WriteLine("- - - - - - - - - -");
-				Utils.WriteEmbeddedColorLine("Turn [yellow]" + turnCounter + "[/yellow]!");
-				Utils.WriteLine("- - - - - - - - - -");
-
-				// Pre-turn Updates
-				if (i == 0)
-				{
-					HeroQueue[i].UpdateStatuses(UpdateType.PRE);
-				}
+				output.AppendLine("███ BATTLE █████████████████\n");
+				for (int j = 0; j < team1.Count; j++)
+					output.AppendFormat("  {0} {1}\n", j + 1, team1[j].InBattleStatisticsBanner);
+				output.Append('\n');
+				for (int j = 0; j < team2.Count; j++)
+					output.AppendFormat("  {0} {1}\n", j + 1, team2[j].InBattleStatisticsBanner);
+				Utils.WriteEmbeddedColorLine(output.ToString());
 
 				turningTeam = team1;
 				opposingTeam = team2;
-				turningPlayer = "[red]Player 1[/red]";
-				// opposingPlayer = "[blue]Player 2[/blue]";
 
 				if (turningHero.Team == team2)
 				{
 					turningTeam = team2;
 					opposingTeam = team1;
-					turningPlayer = "[blue]Player 2[/blue]";
-					// opposingPlayer = "[red]Player 1[/red]";
-				}
-
-				Utils.WriteEmbeddedColorLine("\n- [ [red]Player 1[/red] ] - - - - - - - - -");
-				for (int j = 0; j < team1.Count; j++)
-				{
-					Utils.WriteEmbeddedColorLine("[" + (j + 1) + "] " + team1[j].Name);
-					team1[j].DisplayStats();
-				}
-
-				Utils.WriteEmbeddedColorLine("\n- [ [blue]Player 2[/blue] ] - - - - - - - - -");
-				for (int j = 0; j < team2.Count; j++)
-				{
-					Utils.WriteEmbeddedColorLine("[" + (j + 1) + "] " + team2[j].Name);
-					team2[j].DisplayStats();
 				}
 
 				if (turningHero.IsSupressed)
 				{
-					Utils.WriteLine(turningHero.Name + " is unable to move.");
+					Utils.Error(turningHero.Name + " is unable to move.");
 				}
 				else
 				{
-					Utils.WriteEmbeddedColorLine("\n[ " + turningPlayer + " ]: " + turningHero.Name + "'s Turn!");
+					Utils.WriteEmbeddedColorLine("███ TURN ███████████████████\n");
+					turningHero.LastSkillHit = Skill.None;
+					turningHero.LastSkillUsed = Skill.None;
+					turningHero.LastHeroAttacker = Hero.None;
 					turningHero.DoSkill(this);
 
 					// On-turn Updates
-					turningHero.UpdateStatuses(UpdateType.TURN);
+					turningHero.UpdateStatuses();
 				}
 
 				// Post-turn Updates
 				if (i == HeroQueue.Count - 1)
 				{
-					HeroQueue[i].UpdateStatuses(UpdateType.POST);
+					Console.WriteLine();
+					UpdateBattleStatuses();
 				}
 
 				Utils.Delay(1000);
@@ -161,7 +140,7 @@ namespace Alterblade.Modes
 					while (Console.ReadKey(true).Key != ConsoleKey.Enter) { }
 					Console.WriteLine();
 				}
-
+				Debug.WriteLine(this);
 				Utils.ClearScreen();
 			}
 
@@ -197,6 +176,28 @@ namespace Alterblade.Modes
 				isBattleOver = true;
 				ConcludeGame("[ [red]Player 1[/red] ]", "[ [blue]Player 2[/blue] ]");
 			}
+		}
+
+		void UpdateBattleStatuses()
+		{
+			for (int i = 0; i < battleStatuses.Count; i++)
+				battleStatuses[i].Update();
+		}
+
+		public bool AddBattleStatus(BattleStatus battleStatus)
+		{
+			for (int i = 0; i < battleStatuses.Count; i++)
+			{
+				if (battleStatus.Name == battleStatuses[i].Name)
+					return false;
+			}
+			battleStatuses.Add(battleStatus);
+			return true;
+		}
+
+		public bool RemoveBattleStatus(BattleStatus battleStatus)
+		{
+			return battleStatuses.Remove(battleStatus);
 		}
 
 	}

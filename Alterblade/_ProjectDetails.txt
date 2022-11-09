@@ -1,5 +1,4 @@
 ﻿TODO:
 
-* Update Battle Text Design/Layout
-
-* Add Volfir
+* Implement Volfir ult.
+* Heal when damage is capped is not addressed.

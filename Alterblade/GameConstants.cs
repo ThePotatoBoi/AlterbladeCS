@@ -1,4 +1,5 @@
 ﻿using Alterblade.GameObjects;
+using Alterblade.GameObjects.Statuses;
 using System.Collections.Generic;
 
 namespace Alterblade
@@ -19,19 +20,14 @@ namespace Alterblade
 		N_DAMAGE_PER_TURN,
 		N_DEATH_NOTICE,
 		N_DISABLE,
-		P_CRITBOOST
+		P_CRITBOOST,
+		N_FEEBLE,
 	}
 
 	enum BattleStatusType
 	{
 		TRICKROOM,
-	}
-
-	enum UpdateType
-	{
-		PRE,
-		TURN,
-		POST
+		SCORCH
 	}
 
 	enum SkillTarget
@@ -48,7 +44,8 @@ namespace Alterblade
 		DAMAGE,
 		DAMAGE_HEAL,
 		DAMAGE_RECOIL,
-		DAMAGE_IGNORE_DEFENSE,
+		DAMAGE_IGNORE_TARGET_DEFENSE,
+		DAMAGE_SCALE_WITH_TARGET_ATTACK,
 		SELF_STAT,
 		ENEMY_STAT,
 		SELF_STAT_CHANCE,
@@ -58,16 +55,22 @@ namespace Alterblade
 		DOUBLEHITS,
 		TRIPLEHITS,
 		MULTIHITS,
-		TAUNT,
 
 		// Specials
-		CRITBOOST,
+		TAUNT,
+		MIMIC,
 
 		// Status
 		THORNS,
 		DISABLE,
 		DEATH_NOTICE,
 		POISON_CHANCE,
+		CRITBOOST,
+		FEEBLE,
+
+		// Battle Status
+		TRICKROOM,
+		SCORCH
 	}
 
 	enum HeroQueueSort
@@ -78,19 +81,22 @@ namespace Alterblade
 
 	internal static class GameConstants
 	{
-		public static List<Hero> HEROES = new List<Hero> {
+		public static List<Hero> HEROES = new List<Hero>
+		{
 
 			new Hero(
 				"Effelia",
 				"Druidess",
-				new Dictionary<Stats, int>() {
-					{ Stats.HP, 90 * 6 },
+				new Dictionary<Stats, int>()
+				{
+					{ Stats.HP, 512 },
 					{ Stats.ATTACK, 90 },
 					{ Stats.DEFENSE, 85 },
 					{ Stats.SPEED, 85 },
 					{ Stats.CRIT_CHANCE, 8 }
 				},
-				new List<Skill>() {
+				new List<Skill>()
+				{
 					new Skill( "Pierce", 70, 25, 0.95F,
 						new List<SkillAction>() { SkillAction.DAMAGE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, false ),
@@ -108,16 +114,47 @@ namespace Alterblade
 			),
 
 			new Hero(
+				"Axel",
+				"Paladin",
+				new Dictionary<Stats, int>()
+				{
+					{ Stats.HP, 568 },
+					{ Stats.ATTACK, 75 },
+					{ Stats.DEFENSE, 110 },
+					{ Stats.SPEED, 55 },
+					{ Stats.CRIT_CHANCE, 6 }
+				},
+				new List<Skill>()
+				{
+					new Skill( "Aura Blade", 70, 15, 0.95F,
+						new List<SkillAction>() { SkillAction.DAMAGE_IGNORE_TARGET_DEFENSE }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { }, false ),
+					new Skill( "Shield Bash", 50, 10, 0.9F,
+						new List<SkillAction>() { SkillAction.DAMAGE, SkillAction.ENEMY_STAT_CHANCE }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { { Stats.DEFENSE, -1 } }, false ),
+					new Skill( "Taunt", 0, 5, 0,
+						new List<SkillAction>() { SkillAction.TAUNT }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { }, false ),
+					new Skill( "Holy Blessing", -25, 1, 0,
+						new List<SkillAction>() { SkillAction.HEAL_PERCENT, SkillAction.SELF_STAT }, SkillTarget.ALLYTEAM,
+						new Dictionary<Stats, int>() { { Stats.DEFENSE, 1 } }, true )
+				},
+				null
+			),
+
+			new Hero(
 				"Cadeceous",
 				"Plaque Doctor",
-				new Dictionary<Stats, int>() {
-					{ Stats.HP, 95 * 6 },
-					{ Stats.ATTACK, 100 },
-					{ Stats.DEFENSE, 80 },
-					{ Stats.SPEED, 70 },
+				new Dictionary<Stats, int>()
+				{
+					{ Stats.HP, 545 },
+					{ Stats.ATTACK, 106 },
+					{ Stats.DEFENSE, 78 },
+					{ Stats.SPEED, 78 },
 					{ Stats.CRIT_CHANCE, 8 }
 				},
-				new List<Skill>() {
+				new List<Skill>()
+				{
 					new Skill( "Incision", 70, 25, 0.9F,
 						new List<SkillAction>() { SkillAction.DAMAGE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, false ),
@@ -135,17 +172,48 @@ namespace Alterblade
 			),
 
 			new Hero(
+				"Huabbi",
+				"Two-faced Djinn",
+				new Dictionary<Stats, int>()
+				{
+					{ Stats.HP, 590 },
+					{ Stats.ATTACK, 70 },
+					{ Stats.DEFENSE, 75 },
+					{ Stats.SPEED, 65 },
+					{ Stats.CRIT_CHANCE, 6 }
+				},
+				new List<Skill>()
+				{
+					new Skill( "Dual Orb", 50, 15, 0.90F,
+						new List<SkillAction>() { SkillAction.DOUBLEHITS }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { }, false ),
+					new Skill( "Mimic", 0, 10, 0,
+						new List<SkillAction>() { SkillAction.MIMIC }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { { Stats.DEFENSE, -1 } }, false ),
+					new Skill( "Trick Room", 0, 3, 0,
+						new List<SkillAction>() { SkillAction.TRICKROOM }, SkillTarget.NONE,
+						new Dictionary<Stats, int>() { }, false ),
+					new Skill( "Distortion", 90, 5, 0,
+						new List<SkillAction>() { SkillAction.DAMAGE_SCALE_WITH_TARGET_ATTACK }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { }, true )
+				},
+				null
+			),
+
+			new Hero(
 				"Medea",
 				"Shadow Elf",
-				new Dictionary<Stats, int> {
-					{ Stats.HP, 84 * 6 },
-					{ Stats.ATTACK, 110 },
+				new Dictionary<Stats, int>()
+				{
+					{ Stats.HP, 490 },
+					{ Stats.ATTACK, 115 },
 					{ Stats.DEFENSE, 70 },
 					{ Stats.SPEED, 96 },
 					{ Stats.CRIT_CHANCE, 10 }
 				},
-				new List<Skill> {
-					new Skill( "Shadow Shot", 70, 15, 0.9F,
+				new List<Skill>()
+				{
+					new Skill( "Cripping Shot", 70, 15, 0.9F,
 						new List<SkillAction>() { SkillAction.DAMAGE, SkillAction.ENEMY_STAT_CHANCE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { { Stats.ATTACK, -1 } }, false ),
 					new Skill( "Bowfaire", 0, 5, 0,
@@ -154,7 +222,7 @@ namespace Alterblade
 					new Skill( "Disable", 0, 5, 0,
 						new List<SkillAction>() { SkillAction.DISABLE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, false ),
-					new Skill( "Arrow Barrage", 40, 3, 0.85F,
+					new Skill( "Arrow Barrage", 30, 3, 0.9F,
 						new List<SkillAction>() { SkillAction.MULTIHITS }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, true )
 				},
@@ -162,32 +230,33 @@ namespace Alterblade
 			),
 
 			new Hero(
-				"Axel",
-				"Paladin",
-				new Dictionary<Stats, int> {
-					{ Stats.HP, 95 * 6 },
-					{ Stats.ATTACK, 75 },
-					{ Stats.DEFENSE, 110 },
-					{ Stats.SPEED, 55 },
+				"Volfir",
+				"Dark Magician",
+				new Dictionary<Stats, int>()
+				{
+					{ Stats.HP, 455 },
+					{ Stats.ATTACK, 126 },
+					{ Stats.DEFENSE, 72 },
+					{ Stats.SPEED, 92 },
 					{ Stats.CRIT_CHANCE, 6 }
 				},
-				new List<Skill> {
-					new Skill( "Zenith Blade", 75, 15, 0.95F,
-						new List<SkillAction>() { SkillAction.DAMAGE_IGNORE_DEFENSE }, SkillTarget.TARGET,
+				new List<Skill>()
+				{
+					new Skill( "Swarm", 30, 15, 0.90F,
+						new List<SkillAction>() { SkillAction.TRIPLEHITS }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, false ),
-					new Skill( "Shield Bash", 50, 10, 0.9F,
-						new List<SkillAction>() { SkillAction.DAMAGE, SkillAction.ENEMY_STAT_CHANCE }, SkillTarget.TARGET,
-						new Dictionary<Stats, int>() { { Stats.DEFENSE, -1 } }, false ),
-					new Skill( "Taunt", 0, 5, 0,
-						new List<SkillAction>() { SkillAction.TAUNT }, SkillTarget.TARGET,
+					new Skill( "Enfeeble", 20, 10, 0.8F,
+						new List<SkillAction>() { SkillAction.DAMAGE, SkillAction.FEEBLE }, SkillTarget.TARGET,
 						new Dictionary<Stats, int>() { }, false ),
-					new Skill( "Holy Blessing", 20, 1, 0,
-						new List<SkillAction>() { SkillAction.HEAL_PERCENT, SkillAction.SELF_STAT }, SkillTarget.ALLYTEAM,
-						new Dictionary<Stats, int>() { { Stats.DEFENSE, 1 } }, true )
+					new Skill( "Scorch", 0, 5, 0,
+						new List<SkillAction>() { SkillAction.SCORCH }, SkillTarget.NONE,
+						new Dictionary<Stats, int>() { }, false ),
+					new Skill( "Impending Doom", 160, 1, 0,
+						new List<SkillAction>() { SkillAction.DAMAGE_IGNORE_TARGET_DEFENSE }, SkillTarget.TARGET,
+						new Dictionary<Stats, int>() { }, true )
 				},
 				null
 			)
-
 		};
 	}
 }
